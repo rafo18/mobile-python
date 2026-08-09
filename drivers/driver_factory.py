@@ -18,11 +18,14 @@ def create_driver():
     options.device_name = DEVICE_NAME
     options.automation_name = "UiAutomator2"
 
-    if APP_PACKAGE:
-        options.app_package = APP_PACKAGE
+    options.app_package = APP_PACKAGE
+    options.app_activity = APP_ACTIVITY
 
-    if APP_ACTIVITY:
-        options.app_activity = APP_ACTIVITY
+    options.app_wait_activity = "*"
+
+    options.new_command_timeout = 120
+
+    options.no_reset = False
 
     driver = webdriver.Remote(
         command_executor=APPIUM_SERVER,

@@ -1,26 +1,29 @@
 from appium.webdriver.common.appiumby import AppiumBy
-
 from pages.base_page import BasePage
 
 
-class LoginPage:
+class LoginPage(BasePage):
 
-    USERNAME = (AppiumBy.ACCESSIBILITY_ID, "test-Username")
-    PASSWORD = (AppiumBy.ACCESSIBILITY_ID, "test-Password")
-    LOGIN_BUTTON = (AppiumBy.ACCESSIBILITY_ID, "test-LOGIN")
+    USERNAME = (
+        AppiumBy.ACCESSIBILITY_ID,
+        "test-Userna"
+    )
 
-    def __init__(self, driver):
-        self.driver = driver
+    PASSWORD = (
+        AppiumBy.ACCESSIBILITY_ID,
+        "test-Password"
+    )
+
+    LOGIN_BUTTON = (
+        AppiumBy.ACCESSIBILITY_ID,
+        "test-LOGIN"
+    )
 
     def enter_username(self, username):
-        element = self.driver.find_element(*self.USERNAME)
-        element.clear()
-        element.send_keys(username)
+        self.enter_text(self.USERNAME, username)
 
     def enter_password(self, password):
-        element = self.driver.find_element(*self.PASSWORD)
-        element.clear()
-        element.send_keys(password)
+        self.enter_text(self.PASSWORD, password)
 
     def click_login(self):
-        self.driver.find_element(*self.LOGIN_BUTTON).click()
+        self.click(self.LOGIN_BUTTON)
