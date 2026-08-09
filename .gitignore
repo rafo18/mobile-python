@@ -1,13 +1,9 @@
 venv/
+.env
 __pycache__/
 *.pyc
-
-.env
-
-reports/
+allure-results/
+allure-report/
 screenshots/
-
-.pytest_cache/
-
 .idea/
 .vscode/
