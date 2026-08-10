@@ -6,7 +6,7 @@ class LoginPage(BasePage):
 
     USERNAME = (
         AppiumBy.ACCESSIBILITY_ID,
-        "test-Usern"
+        "test-Username"
     )
 
     PASSWORD = (

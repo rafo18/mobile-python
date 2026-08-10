@@ -1,22 +1,29 @@
-from drivers.driver_factory import create_driver
-from pages.login_page import LoginPage
+from database.connection import DatabaseConnection
+from database.queries import Queries
 
 
-driver = create_driver()
+db = DatabaseConnection()
 
-login_page = LoginPage(driver)
+try:
 
-print("Aplicación abierta")
+    db.connect()
 
-login_page.enter_username("standard_user")
-login_page.enter_password("secret_sauce")
+    print("\n✅ BASE DE DATOS CONECTADA")
 
-print("Credenciales ingresadas")
+    result = db.execute_query(
+        Queries.GET_USER 
+    )
 
-login_page.click_login()
+    print("\nResultado:")
+    print(result)
 
-print("Login ejecutado")
+    result2 = db.execute_query(
+        Queries.GET_ACCOUNT,
+        {"id_cuenta": 4}
+    )
 
-input("Presiona ENTER para cerrar...")
+    print("\nResultado2:")
+    print(result2)
+finally:
 
-driver.quit()
+    db.close()

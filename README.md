@@ -899,7 +899,9 @@ El framework puede evolucionar incorporando:
 | Generar reporte | `allure generate allure-results -o allure-report --clean` |
 | Abrir reporte | `allure open allure-report` |
 | Ejecutar framework completo | `./run_tests.sh` |
-
+|iniciar emulador| `emulator -avd Pixel_7`|
+|lista de emuladores | `emulator -list-avds`|
+|instalar apk| `adb install "ruta\android.apk"`|
 ---
 
 # 👨‍💻 Autor

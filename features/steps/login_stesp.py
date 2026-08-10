@@ -28,3 +28,8 @@ def step_click_login(context):
 @then("debería ingresar correctamente a la aplicación")
 def step_verify_login(context):
     assert context.driver is not None
+
+
+@then("debería mostrar un mensaje de error indicando que las credenciales son inválidas")
+def step_verify_invalid_login(context):
+    users = context.user_repository.get_users()
