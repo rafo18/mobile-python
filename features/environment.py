@@ -7,6 +7,9 @@ from database.connection import DatabaseConnection
 from database.repositories.user_repository import UserRepository
 from database.repositories.account_repository import AccountRepository
 
+from api.api_client import ApiClient
+from api.pokemon_api import PokemonApi
+
 
 def before_scenario(context, scenario):
 
@@ -43,6 +46,35 @@ def before_scenario(context, scenario):
         except Exception as e:
 
             print("\n❌ ERROR AL CONECTAR A BASE DE DATOS:")
+            print(e)
+
+            raise
+
+    # =========================================================
+    # API
+    # =========================================================
+
+    if "api" in scenario.effective_tags:
+
+        print("\n🌐 CONFIGURANDO API...")
+
+        try:
+
+            # Crear cliente API
+            context.api_client = ApiClient(
+                "https://pokeapi.co/api/v2"
+            )
+
+            # Crear API de Pokemon
+            context.pokemon_api = PokemonApi(
+                context.api_client
+            )
+
+            print("✅ API CONFIGURADA")
+
+        except Exception as e:
+
+            print("\n❌ ERROR AL CONFIGURAR API:")
             print(e)
 
             raise

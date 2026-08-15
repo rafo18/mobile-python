@@ -1,0 +1,3 @@
+class Endpoints:
+
+    POKEMON = "/pokemon"
