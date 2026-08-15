@@ -1,4 +1,8 @@
-def verify(context, actual, expected, description):
+def verify(context, actual, expected, description="Assertion"):
+
+    # =========================================================
+    # GUARDAR EVIDENCIA ANTES DEL ASSERT
+    # =========================================================
 
     context.assert_evidence = {
         "description": description,
@@ -6,8 +10,12 @@ def verify(context, actual, expected, description):
         "actual": actual
     }
 
+    # =========================================================
+    # VALIDACIÓN
+    # =========================================================
+
     assert actual == expected, (
-        f"{description} | "
-        f"Expected: {expected} | "
+        f"{description}\n"
+        f"Expected: {expected}\n"
         f"Actual: {actual}"
     )

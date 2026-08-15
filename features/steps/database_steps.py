@@ -39,3 +39,19 @@ def verify_account(context, id_cuenta):
                 "parameters": {},
                 "result": account
             }
+
+from behave import then
+
+
+@then("debería existir información de usuarios en la base de datos")
+def step_verify_users_database(context):
+
+    users = context.user_repository.get_users()
+
+    print("\n👤 USUARIOS ENCONTRADOS:")
+    print(users)
+
+    assert users, (
+        "No se encontraron usuarios "
+        "en la base de datos"
+    )

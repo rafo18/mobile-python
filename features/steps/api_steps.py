@@ -6,39 +6,12 @@ from utils.assertions import verify
 @when('consulto el Pokemon "{pokemon}"')
 def step_get_pokemon(context, pokemon):
 
-    endpoint = f"/pokemon/{pokemon}"
-
     context.response = context.pokemon_api.get_pokemon(
         pokemon
     )
 
-    # =========================================================
-    # API EVIDENCE
-    # =========================================================
-
-    try:
-        response_data = context.response.json()
-    except Exception:
-        response_data = context.response.text
-
-    context.api_evidence = {
-
-        "method": "GET",
-
-        "endpoint": (
-            f"https://pokeapi.co/api/v2"
-            f"{endpoint}"
-        ),
-
-        "parameters": {},
-
-        "status_code": context.response.status_code,
-
-        "response": response_data
-    }
-
     print("\n🌐 API RESPONSE:")
-    print(response_data)
+    print(context.response.text)
 
 
 @then('la API debería responder con código {status_code:d}')

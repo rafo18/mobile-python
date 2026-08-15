@@ -1,4 +1,5 @@
 from behave import given, when, then
+from selenium.common import TimeoutException
 from utils.assertions import verify
 
 from drivers.driver_factory import create_driver
@@ -29,14 +30,31 @@ def step_click_login(context):
 @then("debería ingresar correctamente a la aplicación")
 def step_verify_login(context):
 
-    actual_title = context.login_page.get_products_title()
+    try:
 
-    verify(
-    context,
-    actual=actual_title,
-    expected="PRODUCTS",
-    description="Título de la pantalla principal"
-    )
+        actual_title = (
+            context.login_page
+            .get_products_title()
+        )
+
+        verify(
+            context,
+            actual=actual_title,
+            expected="PRODUCTS",
+            description="Título de la pantalla principal"
+        )
+
+    except TimeoutException:
+
+        verify(
+            context,
+            actual="PRODUCTS no encontrado",
+            expected="PRODUCTS",
+            description=(
+                "El usuario debería "
+                "ingresar a la pantalla principal"
+            )
+        )
 
 @then("debería mostrar un mensaje de error indicando que las credenciales son inválidas")
 def step_verify_invalid_login(context):
