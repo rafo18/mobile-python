@@ -8,8 +8,12 @@ class ApiClient:
 
     def get(self, endpoint, params=None, headers=None):
 
-        return requests.get(
-            f"{self.base_url}{endpoint}",
+        url = f"{self.base_url}{endpoint}"
+
+        response = requests.get(
+            url,
             params=params,
             headers=headers
         )
+
+        return response

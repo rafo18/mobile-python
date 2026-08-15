@@ -19,6 +19,11 @@ class LoginPage(BasePage):
         "test-LOGIN"
     )
 
+    PRODUCTS_TITLE = (
+        AppiumBy.XPATH,
+        '//android.widget.TextView[@text="PRODUCTS"]'
+    )
+
     def enter_username(self, username):
         self.enter_text(self.USERNAME, username)
 
@@ -27,3 +32,8 @@ class LoginPage(BasePage):
 
     def click_login(self):
         self.click(self.LOGIN_BUTTON)
+
+    def get_products_title(self):
+        return self.find_element(
+            self.PRODUCTS_TITLE
+        ).text

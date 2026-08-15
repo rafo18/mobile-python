@@ -1,20 +1,22 @@
 from behave import then
+from database.queries import Queries
 
 
 @then("deberían existir usuarios en la base de datos")
-def verify_users(context):
+def step_verify_users(context):
 
     users = context.user_repository.get_users()
 
-    assert users, (
-        "No existen usuarios registrados en la base de datos."
-    )
-
     print("\n👤 USUARIOS ENCONTRADOS:")
+    print(users)
 
-    for user in users:
-        print(f"   - {user['USUARIO']}")
+    context.db_evidence = {
+        "query": Queries.GET_USER,
+        "parameters": {},
+        "result": users
+    }
 
+    assert users, "No existen usuarios en la base de datos"
 
 @then('la cuenta con ID "{id_cuenta}" debería existir')
 def verify_account(context, id_cuenta):
@@ -27,5 +29,13 @@ def verify_account(context, id_cuenta):
         f"La cuenta con ID {id_cuenta} no existe."
     )
 
+    
+
     print("\n💰 CUENTA ENCONTRADA:")
     print(account)
+
+    context.db_evidence = {
+                "query": Queries.GET_ACCOUNT,
+                "parameters": {},
+                "result": account
+            }

@@ -13,6 +13,18 @@ class DatabaseConnection:
 
         self.connection = None
 
+        # =====================================================
+        # EVIDENCIA DE LA ÚLTIMA CONSULTA
+        # =====================================================
+
+        self.last_query = None
+        self.last_parameters = None
+        self.last_result = None
+
+    # =========================================================
+    # CONECTAR A ORACLE
+    # =========================================================
+
     def connect(self):
 
         if self.connection:
@@ -31,6 +43,7 @@ class DatabaseConnection:
             user,
             password
         ]):
+
             raise ValueError(
                 "Faltan variables de configuración de la base de datos "
                 "en el archivo .env"
@@ -50,16 +63,126 @@ class DatabaseConnection:
                 dsn=dsn
             )
 
-            print("\n🗄️ Conexión a Oracle establecida")
+            print(
+                "\n🗄️ Conexión a Oracle establecida"
+            )
 
             return self.connection
 
         except oracledb.Error as e:
 
-            print("\n❌ Error conectando a Oracle:")
+            print(
+                "\n❌ Error conectando a Oracle:"
+            )
+
             print(e)
 
             raise
+
+    # =========================================================
+    # EJECUTAR QUERY
+    # =========================================================
+
+    def execute_query(self, query, params=None):
+
+        if not self.connection:
+
+            raise Exception(
+                "❌ No existe una conexión activa "
+                "a la base de datos"
+            )
+
+        cursor = self.connection.cursor()
+
+        try:
+
+            # =================================================
+            # PARÁMETROS
+            # =================================================
+
+            parameters = params or {}
+
+            # =================================================
+            # EJECUTAR QUERY
+            # =================================================
+
+            cursor.execute(
+                query,
+                parameters
+            )
+
+            # =================================================
+            # OBTENER RESULTADOS
+            # =================================================
+
+            results = cursor.fetchall()
+
+            # =================================================
+            # GUARDAR EVIDENCIA
+            # =================================================
+
+            self.last_query = query
+            self.last_parameters = parameters
+            self.last_result = results
+
+            print(
+                "\n🗄️ QUERY EJECUTADA:"
+            )
+
+            print(query)
+
+            print(
+                "\n🔧 PARAMETERS:"
+            )
+
+            print(parameters)
+
+            print(
+                "\n📋 RESULT:"
+            )
+
+            print(results)
+
+            return results
+
+        except oracledb.Error as e:
+
+            print(
+                "\n❌ ERROR EJECUTANDO QUERY:"
+            )
+
+            print(e)
+
+            raise
+
+        finally:
+
+            cursor.close()
+
+    # =========================================================
+    # EJECUTAR QUERY - UN SOLO REGISTRO
+    # =========================================================
+
+    def execute_query_one(
+        self,
+        query,
+        params=None
+    ):
+
+        results = self.execute_query(
+            query,
+            params
+        )
+
+        if results:
+
+            return results[0]
+
+        return None
+
+    # =========================================================
+    # CERRAR CONEXIÓN
+    # =========================================================
 
     def close(self):
 
@@ -69,57 +192,18 @@ class DatabaseConnection:
 
                 self.connection.close()
 
-                print("\n🗄️ Conexión a Oracle cerrada")
+                print(
+                    "\n🗄️ Conexión a Oracle cerrada"
+                )
 
             except oracledb.Error as e:
 
-                print("\n❌ Error cerrando conexión:")
+                print(
+                    "\n❌ Error cerrando conexión:"
+                )
+
                 print(e)
 
             finally:
 
                 self.connection = None
-
-    def execute_query(self, query, params=None):
-
-        if not self.connection:
-            raise RuntimeError(
-                "No existe una conexión activa con la base de datos."
-            )
-
-        cursor = self.connection.cursor()
-
-        try:
-
-            cursor.execute(
-                query,
-                params or {}
-            )
-
-            columns = [
-                column[0]
-                for column in cursor.description
-            ]
-
-            rows = cursor.fetchall()
-
-            return [
-                dict(zip(columns, row))
-                for row in rows
-            ]
-
-        finally:
-
-            cursor.close()
-
-    def execute_query_one(self, query, params=None):
-
-        results = self.execute_query(
-            query,
-            params
-        )
-
-        if results:
-            return results[0]
-
-        return None

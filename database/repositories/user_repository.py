@@ -10,4 +10,3 @@ class UserRepository:
         return self.db.execute_query(
             Queries.GET_USER
         )
-    
