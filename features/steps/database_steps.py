@@ -1,5 +1,7 @@
-from behave import then
+from behave import then, when
 from database.queries import Queries
+from utils.assertions import verify
+
 
 
 @then("deberían existir usuarios en la base de datos")
@@ -54,4 +56,27 @@ def step_verify_users_database(context):
     assert users, (
         "No se encontraron usuarios "
         "en la base de datos"
+    )
+@when('actualizo la cuenta con ID "{id_cuenta}" con saldo "{saldo}"')
+def step_update_account(context, id_cuenta, saldo):
+
+    context.account_repository.update_account(
+        id_cuenta=id_cuenta,
+        saldo=saldo
+    )
+
+    print(f"\n💰 CUENTA CON ID {id_cuenta} ACTUALIZADA CON SALDO {saldo}")
+
+@then('la cuenta con ID "{id_cuenta}" debería tener saldo "{saldo}"')
+def step_verify_account_balance(context, id_cuenta, saldo):
+
+    account = context.account_repository.get_account(
+        id_cuenta=id_cuenta
+    )
+
+    verify(
+    context,
+    actual=float(account["SALDO"]),
+    expected=float(saldo),
+    description=f"Saldo de la cuenta con ID {id_cuenta}"
     )

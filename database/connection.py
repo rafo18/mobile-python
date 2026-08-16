@@ -14,7 +14,7 @@ class DatabaseConnection:
         self.connection = None
 
         # =====================================================
-        # EVIDENCIA DE LA ÚLTIMA CONSULTA
+        # EVIDENCIA DE LA ÚLTIMA OPERACIÓN
         # =====================================================
 
         self.last_query = None
@@ -80,10 +80,14 @@ class DatabaseConnection:
             raise
 
     # =========================================================
-    # EJECUTAR QUERY
+    # SELECT
     # =========================================================
 
-    def execute_query(self, query, params=None):
+    def execute_query(
+        self,
+        query,
+        params=None
+    ):
 
         if not self.connection:
 
@@ -96,34 +100,52 @@ class DatabaseConnection:
 
         try:
 
-            # =================================================
-            # PARÁMETROS
-            # =================================================
-
             parameters = params or {}
 
-            # =================================================
+            # -------------------------------------------------
             # EJECUTAR QUERY
-            # =================================================
+            # -------------------------------------------------
 
             cursor.execute(
                 query,
                 parameters
             )
 
-            # =================================================
-            # OBTENER RESULTADOS
-            # =================================================
+            # -------------------------------------------------
+            # OBTENER FILAS
+            # -------------------------------------------------
 
-            results = cursor.fetchall()
+            rows = cursor.fetchall()
 
-            # =================================================
+            # -------------------------------------------------
+            # OBTENER NOMBRES DE COLUMNAS
+            # -------------------------------------------------
+
+            columns = [
+                column[0]
+                for column in cursor.description
+            ]
+
+            # -------------------------------------------------
+            # CONVERTIR RESULTADOS A DICCIONARIOS
+            # -------------------------------------------------
+
+            results = [
+                dict(zip(columns, row))
+                for row in rows
+            ]
+
+            # -------------------------------------------------
             # GUARDAR EVIDENCIA
-            # =================================================
+            # -------------------------------------------------
 
             self.last_query = query
             self.last_parameters = parameters
             self.last_result = results
+
+            # -------------------------------------------------
+            # LOG
+            # -------------------------------------------------
 
             print(
                 "\n🗄️ QUERY EJECUTADA:"
@@ -160,7 +182,7 @@ class DatabaseConnection:
             cursor.close()
 
     # =========================================================
-    # EJECUTAR QUERY - UN SOLO REGISTRO
+    # SELECT - UN SOLO REGISTRO
     # =========================================================
 
     def execute_query_one(
@@ -179,6 +201,108 @@ class DatabaseConnection:
             return results[0]
 
         return None
+
+    # =========================================================
+    # INSERT / UPDATE / DELETE
+    # =========================================================
+
+    def execute_update(
+        self,
+        query,
+        params=None
+    ):
+
+        if not self.connection:
+
+            raise Exception(
+                "❌ No existe una conexión activa "
+                "a la base de datos"
+            )
+
+        cursor = self.connection.cursor()
+
+        try:
+
+            parameters = params or {}
+
+            # -------------------------------------------------
+            # EJECUTAR OPERACIÓN
+            # -------------------------------------------------
+
+            cursor.execute(
+                query,
+                parameters
+            )
+
+            # -------------------------------------------------
+            # FILAS AFECTADAS
+            # -------------------------------------------------
+
+            rows_affected = cursor.rowcount
+
+            # -------------------------------------------------
+            # CONFIRMAR CAMBIOS
+            # -------------------------------------------------
+
+            self.connection.commit()
+
+            # -------------------------------------------------
+            # GUARDAR EVIDENCIA
+            # -------------------------------------------------
+
+            self.last_query = query
+            self.last_parameters = parameters
+
+            self.last_result = (
+                f"{rows_affected} fila(s) afectada(s)"
+            )
+
+            # -------------------------------------------------
+            # LOG
+            # -------------------------------------------------
+
+            print(
+                "\n🗄️ OPERACIÓN EJECUTADA:"
+            )
+
+            print(query)
+
+            print(
+                "\n🔧 PARAMETERS:"
+            )
+
+            print(parameters)
+
+            print(
+                "\n📋 RESULT:"
+            )
+
+            print(
+                f"{rows_affected} fila(s) afectada(s)"
+            )
+
+            return rows_affected
+
+        except oracledb.Error as e:
+
+            # -------------------------------------------------
+            # DESHACER CAMBIOS
+            # -------------------------------------------------
+
+            self.connection.rollback()
+
+            print(
+                "\n❌ ERROR EJECUTANDO "
+                "OPERACIÓN:"
+            )
+
+            print(e)
+
+            raise
+
+        finally:
+
+            cursor.close()
 
     # =========================================================
     # CERRAR CONEXIÓN

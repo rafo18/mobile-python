@@ -11,4 +11,10 @@ class Queries:
         WHERE ID_CUENTA = :id_cuenta;
     """
 
+    UPDATE_ACCOUNT = """
+        UPDATE cuentas
+        SET SALDO = :saldo
+        WHERE ID_CUENTA = :id_cuenta;
+    """
+
     

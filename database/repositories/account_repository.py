@@ -14,3 +14,18 @@ class AccountRepository:
                 "id_cuenta": id_cuenta
             }
         )
+
+    def update_account(
+        self,
+        id_cuenta,
+        saldo
+    ):
+
+        return self.db.execute_update(
+            Queries.UPDATE_ACCOUNT,
+            {
+                "id_cuenta": id_cuenta,
+                "saldo": saldo
+            }
+        )
+        

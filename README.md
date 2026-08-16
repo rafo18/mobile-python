@@ -1,27 +1,95 @@
 # 📱 Mobile Automation Framework
 
-Framework de automatización de pruebas móviles desarrollado con **Python, Appium, Behave y Gherkin**, utilizando el patrón de diseño **Page Object Model (POM)** y **Allure** para la generación de reportes.
+Framework de automatización de pruebas móviles desarrollado con **Python, Appium, Behave, Gherkin y Allure**, utilizando **Page Object Model (POM)** para la automatización Mobile e incorporando integración con **APIs REST y Oracle Database**.
 
-El proyecto está orientado a la automatización de aplicaciones Android mediante un **Android Emulator** o dispositivo físico.
-
----
-
-## 🛠️ Tecnologías
-
-- **Python** - Lenguaje de programación
-- **Appium** - Automatización mobile
-- **UiAutomator2** - Automatización Android
-- **Behave** - Framework BDD
-- **Gherkin** - Definición de escenarios
-- **Selenium** - Esperas explícitas y utilidades
-- **Allure** - Reportería
-- **ADB** - Comunicación con dispositivos Android
-- **Android Studio** - Emulador y Android SDK
-- **Git / GitHub** - Control de versiones
+El objetivo del framework es permitir la ejecución de pruebas funcionales e integradas, manteniendo separadas las responsabilidades de **Frontend, API, Base de Datos y Assertions**, y generando evidencia detallada por cada Step.
 
 ---
 
-## 📂 Estructura del proyecto
+## 🎯 Objetivos
+
+El framework permite automatizar y validar:
+
+- 📱 Flujos de aplicaciones Android.
+- 🌐 Consumo y validación de APIs REST.
+- 🗄️ Consultas y validaciones contra Oracle Database.
+- 🔎 Assertions reutilizables con Expected / Actual.
+- 📸 Screenshots por Step de Front.
+- 📊 Evidencias detalladas en Allure.
+- 🔄 Precondiciones mediante `Background`.
+- 🔗 Escenarios combinando Front + API + Base de Datos.
+
+---
+
+# 🛠️ Tecnologías
+
+| Tecnología | Uso |
+|---|---|
+| Python | Lenguaje principal |
+| Appium | Automatización Mobile |
+| UiAutomator2 | Driver Android |
+| Behave | Framework BDD |
+| Gherkin | Definición de escenarios |
+| Selenium | WebDriver y esperas explícitas |
+| Requests | Consumo de APIs REST |
+| Oracle / oracledb | Integración con Base de Datos |
+| python-dotenv | Variables de entorno |
+| Allure | Reportería y evidencias |
+| ADB | Comunicación con dispositivos Android |
+| Android Studio | Android SDK y Emulator |
+| Appium Inspector | Identificación de elementos |
+| Git / GitHub | Control de versiones |
+
+---
+
+# 🏗️ Arquitectura
+
+El framework utiliza diferentes capas para separar responsabilidades.
+
+```text
+                         GHERKIN
+                            │
+                          BEHAVE
+                            │
+                      STEP DEFINITIONS
+                            │
+          ┌─────────────────┼─────────────────┐
+          │                 │                 │
+          ▼                 ▼                 ▼
+     PAGE OBJECTS        API LAYER         DB LAYER
+          │                 │                 │
+          ▼                 ▼                 ▼
+        Appium           ApiClient       Repository
+          │                 │                 │
+          ▼                 ▼                 ▼
+      Android            REST API          Oracle
+          │                 │                 │
+          └─────────────────┼─────────────────┘
+                            │
+                            ▼
+                       ASSERTIONS
+                            │
+                            ▼
+                          ALLURE
+```
+
+### Principio principal
+
+Los Steps describen **qué se quiere validar**.
+
+Las diferentes capas se encargan de **cómo realizarlo**.
+
+Ejemplo:
+
+```python
+context.login_page.enter_username(username)
+```
+
+El Step no necesita conocer cómo Appium encuentra el elemento.
+
+---
+
+# 📂 Estructura del proyecto
 
 ```text
 proyecto__python/
@@ -29,36 +97,47 @@ proyecto__python/
 ├── app/
 │   └── application.apk
 │
-├── features/
-│   ├── login.feature
-│   ├── environment.py
-│   │
-│   └── steps/
-│       └── login_steps.py
+├── api/
+│   ├── api_client.py
+│   └── pokemon_api.py
+│
+├── database/
+│   ├── connection.py
+│   ├── queries.py
+│   └── repositories/
+│       ├── user_repository.py
+│       └── account_repository.py
+│
+├── drivers/
+│   └── driver_factory.py
 │
 ├── pages/
 │   ├── base_page.py
 │   └── login_page.py
 │
-├── drivers/
-│   └── driver_factory.py
+├── utils/
+│   └── assertions.py
 │
 ├── config/
 │   └── config.py
 │
-├── database/
-│   ├── connection.py
-│   └── queries.py
-│
 ├── test_data/
 │
+├── features/
+│   ├── environment.py
+│   ├── login.feature
+│   ├── api.feature
+│   ├── database.feature
+│   ├── integration.feature
+│   │
+│   └── steps/
+│       ├── login_steps.py
+│       ├── api_steps.py
+│       └── database_steps.py
+│
 ├── screenshots/
-│
 ├── allure-results/
-│
 ├── allure-report/
-│
-├── venv/
 │
 ├── .env
 ├── .gitignore
@@ -67,31 +146,7 @@ proyecto__python/
 └── README.md
 ```
 
-> `venv/`, `allure-results/`, `allure-report/` y archivos sensibles como `.env` no deben subirse al repositorio.
-
----
-
-# 🏗️ Arquitectura
-
-El proyecto utiliza **Page Object Model (POM)** para separar la lógica de las pruebas de la interacción con los elementos de la aplicación.
-
-```text
-Gherkin
-   ↓
-Behave
-   ↓
-Step Definitions
-   ↓
-Page Object Model
-   ↓
-Appium
-   ↓
-UiAutomator2
-   ↓
-Android Emulator / Device
-   ↓
-Aplicación Mobile
-```
+> `venv/`, `.env`, `screenshots/`, `allure-results/` y `allure-report/` no deben subirse al repositorio.
 
 ---
 
@@ -99,48 +154,44 @@ Aplicación Mobile
 
 ## `features/`
 
-Contiene los escenarios escritos utilizando **Gherkin**.
+Contiene los escenarios escritos en Gherkin.
 
 Ejemplo:
 
 ```gherkin
 Feature: Login
 
-  Scenario: Login exitoso con credenciales válidas
-    Given que el usuario abre la aplicación
-    When ingresa el usuario "standard_user"
-    And ingresa la contraseña "secret_sauce"
-    And presiona el botón LOGIN
-    Then debería ingresar correctamente a la aplicación
+    Scenario: Login exitoso con credenciales válidas
+
+        Given que el usuario abre la aplicación
+
+        When ingresa el usuario "standard_user"
+        And ingresa la contraseña "secret_sauce"
+        And presiona el botón LOGIN
+
+        Then debería ingresar correctamente a la aplicación
 ```
 
 ---
 
 ## `features/steps/`
 
-Contiene la implementación Python de los pasos definidos en los archivos `.feature`.
+Contiene la implementación Python de los Steps.
 
 Ejemplo:
 
 ```python
 @when('ingresa el usuario "{username}"')
 def step_enter_username(context, username):
+
     context.login_page.enter_username(username)
 ```
 
----
-
-## `features/environment.py`
-
-Contiene los hooks de Behave utilizados para realizar acciones antes o después de los escenarios.
-
-Entre sus responsabilidades se encuentran:
-
-- Cerrar la sesión de Appium.
-- Capturar screenshots cuando un escenario falla.
-- Ejecutar acciones comunes después de cada escenario.
+Los Steps deben mantenerse simples y delegar la lógica a Page Objects, APIs o Repositories.
 
 ---
+
+# 📱 Mobile Automation
 
 ## `pages/`
 
@@ -152,25 +203,22 @@ Ejemplo:
 pages/
 ├── base_page.py
 ├── login_page.py
-├── home_page.py
-└── ...
+└── home_page.py
 ```
 
-Cada pantalla contiene sus respectivos elementos y acciones.
+Cada Page Object contiene:
+
+- Locators.
+- Acciones de la pantalla.
+- Métodos reutilizables.
 
 ---
 
 ## `pages/base_page.py`
 
-Contiene métodos reutilizables para las diferentes pantallas.
-
-Ejemplo:
+Contiene acciones comunes:
 
 ```python
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
-
 class BasePage:
 
     def __init__(self, driver):
@@ -197,64 +245,47 @@ class BasePage:
         return self.find_element(locator).text
 ```
 
-El framework utiliza **esperas explícitas** para evitar problemas de sincronización durante la carga de la aplicación.
+Se utilizan **esperas explícitas** para evitar depender de `time.sleep()`.
 
 ---
 
-## `pages/login_page.py`
+# 🔍 Locators
 
-Contiene los elementos y acciones correspondientes a la pantalla de Login.
+Siempre que sea posible, utilizar locators estables.
+
+Preferencia:
+
+```python
+AppiumBy.ACCESSIBILITY_ID
+```
+
+antes que XPath.
 
 Ejemplo:
 
 ```python
-from appium.webdriver.common.appiumby import AppiumBy
-
-from pages.base_page import BasePage
-
-
-class LoginPage(BasePage):
-
-    USERNAME = (
-        AppiumBy.ACCESSIBILITY_ID,
-        "test-Username"
-    )
-
-    PASSWORD = (
-        AppiumBy.ACCESSIBILITY_ID,
-        "test-Password"
-    )
-
-    LOGIN_BUTTON = (
-        AppiumBy.ACCESSIBILITY_ID,
-        "test-LOGIN"
-    )
-
-    def enter_username(self, username):
-        self.enter_text(self.USERNAME, username)
-
-    def enter_password(self, password):
-        self.enter_text(self.PASSWORD, password)
-
-    def click_login(self):
-        self.click(self.LOGIN_BUTTON)
+USERNAME = (
+    AppiumBy.ACCESSIBILITY_ID,
+    "test-Username"
+)
 ```
 
-Siempre que sea posible se utilizan **Accessibility IDs** en lugar de XPath, buscando mayor estabilidad y mantenibilidad.
+Cuando no exista un locator estable, puede utilizarse XPath:
+
+```python
+(
+    AppiumBy.XPATH,
+    '//android.widget.TextView[@text="PRODUCTS"]'
+)
+```
 
 ---
 
 # 🚗 Driver de Appium
 
-El archivo:
+`drivers/driver_factory.py` centraliza la creación del driver.
 
-```text
-drivers/driver_factory.py
-```
-
-centraliza la creación de la sesión de Appium.
-
-Ejemplo de configuración:
+Ejemplo:
 
 ```python
 from appium import webdriver
@@ -283,15 +314,516 @@ def create_driver():
     return driver
 ```
 
-Los valores de `app_package`, `app_activity`, dispositivo y servidor deben adaptarse al ambiente donde se ejecutará la automatización.
+Los valores de Package, Activity, dispositivo y servidor deben adaptarse al ambiente.
+
+---
+
+# 🌐 API Automation
+
+La capa API está separada en dos niveles:
+
+```text
+Step
+ ↓
+PokemonApi
+ ↓
+ApiClient
+ ↓
+Requests
+ ↓
+REST API
+```
+
+## `api/api_client.py`
+
+El `ApiClient` centraliza las llamadas HTTP.
+
+Ejemplo:
+
+```python
+import requests
+
+
+class ApiClient:
+
+    def __init__(self, base_url):
+        self.base_url = base_url
+
+    def get(self, endpoint, params=None, headers=None):
+
+        url = f"{self.base_url}{endpoint}"
+
+        response = requests.get(
+            url,
+            params=params,
+            headers=headers
+        )
+
+        return response
+```
+
+## API específica
+
+Ejemplo:
+
+```python
+class PokemonApi:
+
+    def __init__(self, api_client):
+        self.api_client = api_client
+
+    def get_pokemon(self, pokemon):
+
+        return self.api_client.get(
+            f"/pokemon/{pokemon}"
+        )
+```
+
+Esto permite cambiar o ampliar APIs sin modificar los Steps.
+
+---
+
+# 🗄️ Database Automation
+
+La integración con Base de Datos utiliza:
+
+```text
+Step
+ ↓
+Repository
+ ↓
+DatabaseConnection
+ ↓
+Oracle
+```
+
+La conexión se encuentra en:
+
+```text
+database/connection.py
+```
+
+Las queries se centralizan en:
+
+```text
+database/queries.py
+```
+
+Los repositories encapsulan el acceso:
+
+```text
+database/repositories/
+├── user_repository.py
+└── account_repository.py
+```
+
+---
+
+## Queries
+
+Ejemplo:
+
+```python
+class Queries:
+
+    GET_USER = """
+        SELECT
+            id_usuario,
+            usuario,
+            nombre
+        FROM usuarios
+    """
+```
+
+---
+
+## Repository
+
+Ejemplo:
+
+```python
+from database.queries import Queries
+
+
+class UserRepository:
+
+    def __init__(self, db):
+        self.db = db
+
+    def get_users(self):
+
+        return self.db.execute_query(
+            Queries.GET_USER
+        )
+```
+
+El Step solamente consume el Repository:
+
+```python
+users = context.user_repository.get_users()
+```
+
+De esta forma, el Step no necesita conocer SQL ni la implementación de conexión.
+
+---
+
+# 🔎 Assertions
+
+Las validaciones utilizan una función reutilizable:
+
+```python
+verify(
+    context,
+    actual=actual,
+    expected=expected,
+    description="Descripción"
+)
+```
+
+Ejemplo:
+
+```python
+verify(
+    context,
+    actual=context.response.status_code,
+    expected=200,
+    description="API Status Code"
+)
+```
+
+La evidencia generada incluye:
+
+```text
+Assertion
+Expected
+Actual
+```
+
+La evidencia se registra antes del `assert`, permitiendo mostrar Expected / Actual incluso cuando la validación falla.
+
+---
+
+# 📸 Sistema de evidencias
+
+Una de las características principales del framework es la generación de evidencia por Step.
+
+## 📱 Front / Appium
+
+Los Steps que interactúan con la aplicación generan:
+
+```text
+📎 Screenshot
+```
+
+Ejemplo:
+
+```text
+When ingresa el usuario "standard_user"
+
+    📎 Screenshot - ingresa el usuario
+```
+
+---
+
+## 🌐 API
+
+Los Steps que realizan llamadas API generan:
+
+```text
+📎 API Method
+📎 API Endpoint
+📎 API Parameters
+📎 API Status Code
+📎 API Response
+```
+
+Ejemplo:
+
+```text
+Method:
+GET
+
+Endpoint:
+https://pokeapi.co/api/v2/pokemon/pikachu
+
+Status Code:
+200
+
+Response:
+{
+    "id": 25,
+    "name": "pikachu"
+}
+```
+
+---
+
+## 🗄️ Database
+
+Los Steps que ejecutan consultas generan:
+
+```text
+📎 SQL Query
+📎 SQL Parameters
+📎 SQL Result
+```
+
+Ejemplo:
+
+```text
+SQL Query:
+
+SELECT id_usuario,
+       usuario,
+       nombre
+FROM usuarios
+
+Parameters:
+{}
+
+Result:
+[(1, 'standard_user', 'Standard User')]
+```
+
+---
+
+## 🔎 Assertions
+
+Las validaciones generan:
+
+```text
+📎 Assertion
+📎 Expected
+📎 Actual
+```
+
+Ejemplo:
+
+```text
+Assertion:
+API Status Code
+
+Expected:
+200
+
+Actual:
+200
+```
+
+---
+
+# 📊 Allure Report
+
+Allure permite visualizar la ejecución y las evidencias de cada Step.
+
+El resultado de Behave se almacena en:
+
+```text
+allure-results/
+```
+
+El reporte generado puede almacenarse en:
+
+```text
+allure-report/
+```
+
+---
+
+# ❌ Failed vs Broken
+
+El framework diferencia entre fallos funcionales y errores técnicos.
+
+## 🔴 Failed
+
+Se utiliza cuando una validación funcional no cumple.
+
+Ejemplo:
+
+```text
+Expected:
+PRODUCTS
+
+Actual:
+PRODUCTS no encontrado
+```
+
+Esto representa un fallo funcional.
+
+---
+
+## 🟡 Broken
+
+Se utiliza cuando ocurre un error técnico no controlado.
+
+Ejemplos:
+
+```text
+Appium Server no disponible
+Database connection failed
+API connection error
+Driver no inicializado
+```
+
+Esta separación facilita identificar rápidamente si el problema está en:
+
+```text
+🔴 Funcionalidad
+```
+
+o:
+
+```text
+🟡 Infraestructura / Automatización
+```
+
+---
+
+# 🔄 Background y precondiciones
+
+`Background` se utiliza para definir condiciones iniciales comunes a todos los escenarios de una Feature.
+
+En este framework se recomienda utilizarlo principalmente para:
+
+- Precondiciones de Base de Datos.
+- Preparación de datos.
+- Validaciones iniciales de API.
+- Estado inicial necesario para ejecutar el escenario.
+
+Ejemplo:
+
+```gherkin
+@database @api
+Feature: Transferencias
+
+    Background:
+
+        Given existe el usuario "standard_user"
+
+        And la cuenta del usuario está activa
+
+        And el servicio de transferencias está disponible
+
+    Scenario: Transferencia exitosa
+
+        When realiza una transferencia de 100 USD
+
+        Then la transferencia debería realizarse correctamente
+```
+
+La idea es:
+
+```text
+Background
+    ↓
+Preparar condiciones iniciales
+    ↓
+Scenario
+    ↓
+Ejecutar acción
+    ↓
+Then
+    ↓
+Validar resultado
+```
+
+No se recomienda utilizar el `Background` para colocar las validaciones principales del escenario.
+
+---
+
+# 🏷️ Tags
+
+Los Tags permiten activar los recursos necesarios para cada escenario.
+
+## API
+
+```gherkin
+@api
+Scenario: Consultar Pokemon
+```
+
+## Database
+
+```gherkin
+@database
+Scenario: Validar usuarios
+```
+
+## Combinación
+
+```gherkin
+@api @database
+Scenario: Validación integrada
+```
+
+El `environment.py` utiliza estos Tags para inicializar los recursos correspondientes.
+
+---
+
+# 🔗 Escenario integrado
+
+El framework permite combinar Front, API y Database dentro del mismo escenario.
+
+Ejemplo:
+
+```gherkin
+@api @database
+Scenario: Validación integrada
+
+    Given que el usuario abre la aplicación
+
+    When ingresa el usuario "standard_user"
+    And ingresa la contraseña "secret_sauce"
+    And presiona el botón LOGIN
+
+    Then debería ingresar correctamente a la aplicación
+
+    When consulto el Pokemon "pikachu"
+
+    Then la API debería responder con código 200
+    And el Pokemon debería llamarse "pikachu"
+
+    And debería existir información de usuarios en la base de datos
+```
+
+El reporte puede mostrar:
+
+```text
+✓ Login
+    📎 Screenshot
+
+✓ Validación de Login
+    📎 Screenshot
+    📎 Assertion
+    📎 Expected
+    📎 Actual
+
+✓ Consulta API
+    📎 Method
+    📎 Endpoint
+    📎 Status Code
+    📎 Response
+
+✓ Validación API
+    📎 Assertion
+    📎 Expected
+    📎 Actual
+
+✓ Consulta BD
+    📎 SQL Query
+    📎 Parameters
+    📎 Result
+```
+
+Esto permite tener trazabilidad completa del escenario.
 
 ---
 
 # ⚙️ Configuración
 
-La configuración puede manejarse mediante variables de entorno.
+El framework utiliza variables de entorno para información sensible y configuración.
 
-Ejemplo de `.env`:
+Ejemplo:
 
 ```env
 APPIUM_SERVER=http://127.0.0.1:4723
@@ -301,134 +833,45 @@ DEVICE_NAME=emulator-5554
 
 APP_PACKAGE=com.example.app
 APP_ACTIVITY=.MainActivity
+
+DB_HOST=localhost
+DB_PORT=1521
+DB_SERVICE=XEPDB1
+DB_USER=usuario
+DB_PASSWORD=password
 ```
-
-### 🔐 Seguridad
-
-No subir al repositorio:
-
-- Contraseñas
-- Tokens
-- Credenciales
-- Datos sensibles
-- Archivos `.env`
-
-El archivo `.env` debe incluirse en `.gitignore`.
 
 ---
 
-# 🗄️ Base de datos
+# 🔐 Seguridad
 
-El proyecto contempla una capa independiente para integración con base de datos:
+Nunca almacenar en el código:
 
-```text
-database/
-├── connection.py
-└── queries.py
-```
+- Passwords.
+- Tokens.
+- Credenciales.
+- Información sensible.
+- Variables de conexión.
 
-Esta capa permitirá posteriormente:
+Utilizar `.env`.
 
-- Obtener datos de prueba.
-- Preparar información antes de una ejecución.
-- Consultar información generada por la aplicación.
-- Realizar validaciones contra la base de datos.
+Agregar al `.gitignore`:
 
-La implementación puede adaptarse a diferentes motores como:
-
-- MySQL
-- Oracle
-- PostgreSQL
-- SQLite
-
----
-
-# 📸 Evidencias
-
-Cuando un escenario falla, el framework puede capturar automáticamente un screenshot.
-
-Las evidencias se almacenan en:
-
-```text
-screenshots/
-```
-
-Ejemplo:
-
-```text
-screenshots/
-└── Login_20260809_163020.png
-```
-
-Esto permite analizar el estado de la aplicación en el momento del fallo.
-
----
-
-# 📊 Reportería Allure
-
-El proyecto utiliza **Allure** para generar reportes de ejecución.
-
-Los resultados generados por Behave se almacenan en:
-
-```text
+```gitignore
+.env
+venv/
+.venv/
+__pycache__/
 allure-results/
-```
-
-El reporte HTML generado se almacena en:
-
-```text
 allure-report/
+screenshots/
 ```
-
-El reporte permite visualizar:
-
-- Features
-- Scenarios
-- Steps
-- Passed
-- Failed
-- Duración
-- Errores
-
----
-
-# 🧹 Script de ejecución
-
-El archivo:
-
-```text
-run_tests.sh
-```
-
-automatiza el proceso completo de ejecución.
-
-Cada ejecución:
-
-```text
-Eliminar resultados anteriores
-        ↓
-Eliminar reporte anterior
-        ↓
-Ejecutar Behave
-        ↓
-Generar resultados Allure
-        ↓
-Generar nuevo reporte
-```
-
-Para ejecutarlo:
-
-```bash
-./run_tests.sh
-```
-
-Esto garantiza que cada ejecución comience con resultados limpios.
 
 ---
 
 # 💻 Requisitos
 
-Antes de ejecutar el proyecto se necesita instalar:
+Antes de instalar el framework se necesita:
 
 - Python 3.x
 - Node.js
@@ -437,11 +880,12 @@ Antes de ejecutar el proyecto se necesita instalar:
 - Android Studio
 - Android SDK
 - Android SDK Platform Tools
-- Android Emulator
+- Android Emulator o dispositivo físico
 - Appium 2
 - UiAutomator2
 - Allure Commandline
 - Git
+- Oracle Database o acceso a una instancia Oracle
 
 ---
 
@@ -451,11 +895,6 @@ Antes de ejecutar el proyecto se necesita instalar:
 
 ```bash
 git clone <URL_DEL_REPOSITORIO>
-```
-
-Entrar al proyecto:
-
-```bash
 cd proyecto__python
 ```
 
@@ -467,22 +906,28 @@ cd proyecto__python
 python -m venv venv
 ```
 
-Activar en Git Bash:
+### Git Bash
 
 ```bash
 source venv/Scripts/activate
 ```
 
-En PowerShell:
+### PowerShell
 
 ```powershell
 .\venv\Scripts\Activate.ps1
 ```
 
-Una vez activado debe aparecer:
+### CMD
 
-```text
-(venv)
+```cmd
+venv\Scripts\activate
+```
+
+Verificar:
+
+```bash
+python --version
 ```
 
 ---
@@ -493,19 +938,27 @@ Una vez activado debe aparecer:
 pip install -r requirements.txt
 ```
 
-Las principales dependencias utilizadas son:
+Dependencias principales:
 
 ```text
 Appium-Python-Client
 behave
 selenium
-allure-behave
+requests
+oracledb
 python-dotenv
+allure-behave
+```
+
+Si se agregan nuevas dependencias:
+
+```bash
+pip freeze > requirements.txt
 ```
 
 ---
 
-# 📱 Configuración de Android
+# 📱 Configuración Android
 
 ## Verificar ADB
 
@@ -513,7 +966,7 @@ python-dotenv
 adb --version
 ```
 
-Ver dispositivos conectados:
+Ver dispositivos:
 
 ```bash
 adb devices
@@ -528,19 +981,19 @@ emulator-5554    device
 
 ---
 
-## Ver emuladores disponibles
+## Ver emuladores
 
 ```bash
 emulator -list-avds
 ```
 
-Iniciar un emulador:
+Iniciar:
 
 ```bash
 emulator -avd Pixel_7
 ```
 
-Después comprobar:
+Después:
 
 ```bash
 adb devices
@@ -548,61 +1001,70 @@ adb devices
 
 ---
 
-# 📲 Configuración de Appium
+# 📲 Instalar Appium
 
-Verificar Appium:
+Verificar Node:
+
+```bash
+node --version
+npm --version
+```
+
+Instalar Appium:
+
+```bash
+npm install -g appium
+```
+
+Verificar:
 
 ```bash
 appium --version
 ```
 
-Ver drivers:
+---
 
-```bash
-appium driver list
-```
-
-Verificar que esté instalado:
-
-```text
-uiautomator2
-```
-
-Si no está instalado:
+# 🤖 Instalar UiAutomator2
 
 ```bash
 appium driver install uiautomator2
+```
+
+Verificar:
+
+```bash
+appium driver list
 ```
 
 ---
 
 # ▶️ Iniciar Appium
 
-Abrir una terminal y ejecutar:
+Abrir una terminal:
 
 ```bash
 appium
 ```
 
-El servidor quedará disponible normalmente en:
+Por defecto:
 
 ```text
 http://127.0.0.1:4723
 ```
 
-Mantener esta terminal abierta durante la ejecución de las pruebas.
+Mantener el servidor activo durante la ejecución.
 
 ---
 
-# 📦 Instalar el APK
+# 📦 Instalar APK
 
-Si se dispone del APK:
+Si se dispone de un APK:
 
 ```bash
 adb install "app/application.apk"
 ```
 
-El resultado esperado es:
+Resultado esperado:
 
 ```text
 Success
@@ -614,7 +1076,9 @@ Success
 
 Con la aplicación abierta:
 
-```bash
+### Windows CMD
+
+```cmd
 adb shell dumpsys window | findstr mCurrentFocus
 ```
 
@@ -624,20 +1088,76 @@ Ejemplo:
 mCurrentFocus=Window{... u0 com.example.app/com.example.app.MainActivity}
 ```
 
-La configuración sería:
+Configurar:
 
 ```env
 APP_PACKAGE=com.example.app
-APP_ACTIVITY=com.example.app.MainActivity
+APP_ACTIVITY=.MainActivity
+```
+
+---
+
+# 🔎 Appium Inspector
+
+Appium Inspector permite identificar los elementos de la aplicación y obtener locators.
+
+Flujo:
+
+```text
+Appium
+   ↓
+Appium Inspector
+   ↓
+Android Device / Emulator
+   ↓
+Aplicación
+```
+
+Se recomienda utilizar:
+
+```text
+Accessibility ID
+```
+
+antes que XPath cuando exista un identificador estable.
+
+---
+
+# 🗄️ Configuración Database
+
+Crear un archivo:
+
+```text
+.env
+```
+
+Ejemplo:
+
+```env
+DB_HOST=localhost
+DB_PORT=1521
+DB_SERVICE=XEPDB1
+DB_USER=usuario
+DB_PASSWORD=password
+```
+
+La conexión se realiza mediante:
+
+```python
+DatabaseConnection()
+```
+
+Los repositories utilizan las queries centralizadas en:
+
+```text
+database/queries.py
 ```
 
 ---
 
 # 🧪 Ejecución de pruebas
 
-## Ejecutar todos los escenarios
-
-Desde la raíz del proyecto:
+## Todos los escenarios
 
 ```bash
 behave
@@ -645,7 +1165,7 @@ behave
 
 ---
 
-## Ejecutar un Feature específico
+## Feature específico
 
 ```bash
 behave features/login.feature
@@ -653,7 +1173,7 @@ behave features/login.feature
 
 ---
 
-## Ejecutar un escenario específico
+## Escenario específico
 
 ```bash
 behave --name "Login exitoso con credenciales válidas"
@@ -661,29 +1181,22 @@ behave --name "Login exitoso con credenciales válidas"
 
 ---
 
-## Ejecutar utilizando Tags
-
-Ejemplo:
-
-```gherkin
-@smoke
-Scenario: Login exitoso con credenciales válidas
-```
-
-Ejecutar:
+## Por Tag
 
 ```bash
 behave --tags=smoke
 ```
 
-Se pueden utilizar diferentes categorías:
+API:
 
-```text
-@smoke
-@regression
-@login
-@transfer
-@qr
+```bash
+behave -t @api
+```
+
+Database:
+
+```bash
+behave -t @database
 ```
 
 ---
@@ -696,112 +1209,79 @@ Generar resultados:
 behave -f allure_behave.formatter:AllureFormatter -o allure-results
 ```
 
-Generar el reporte:
+Generar reporte:
 
 ```bash
 allure generate allure-results -o allure-report --clean
 ```
 
-Abrir el reporte:
+Abrir:
 
 ```bash
 allure open allure-report
 ```
 
+También puede utilizarse:
+
+```bash
+allure serve allure-results
+```
+
 ---
 
-# ⭐ Ejecución recomendada
+# 🧹 Limpiar resultados
 
-La forma recomendada de ejecutar todo el framework es:
+### Git Bash
+
+```bash
+rm -rf allure-results
+rm -rf allure-report
+```
+
+### CMD
+
+```cmd
+rmdir /s /q allure-results
+rmdir /s /q allure-report
+```
+
+---
+
+# 🧹 Script de ejecución
+
+Si el proyecto utiliza:
+
+```text
+run_tests.sh
+```
+
+el script puede automatizar:
+
+```text
+Limpiar resultados
+       ↓
+Limpiar reporte
+       ↓
+Ejecutar Behave
+       ↓
+Generar Allure
+       ↓
+Abrir / generar reporte
+```
+
+Ejecutar:
 
 ```bash
 ./run_tests.sh
-```
-
-Este comando realiza automáticamente:
-
-1. Limpieza de resultados anteriores.
-2. Limpieza del reporte anterior.
-3. Ejecución de Behave.
-4. Generación de resultados Allure.
-5. Generación del nuevo reporte.
-
----
-
-# 🔄 Flujo de ejecución
-
-```text
-                Gherkin
-                   │
-                   ▼
-                Behave
-                   │
-                   ▼
-            Step Definitions
-                   │
-                   ▼
-             Page Objects
-                   │
-                   ▼
-                Appium
-                   │
-                   ▼
-             UiAutomator2
-                   │
-                   ▼
-          Android Emulator
-                   │
-                   ▼
-              Aplicación
-                   │
-                   ▼
-          Test Result / Evidence
-                   │
-                   ▼
-                Allure
-```
-
----
-
-# 🧪 Ejemplo de prueba
-
-Actualmente el framework permite automatizar un flujo de Login.
-
-```gherkin
-Feature: Login
-
-  Scenario: Login exitoso con credenciales válidas
-
-    Given que el usuario abre la aplicación
-    When ingresa el usuario "standard_user"
-    And ingresa la contraseña "secret_sauce"
-    And presiona el botón LOGIN
-    Then debería ingresar correctamente a la aplicación
-```
-
-El flujo automatizado es:
-
-```text
-Abrir aplicación
-       ↓
-Ingresar usuario
-       ↓
-Ingresar contraseña
-       ↓
-Presionar LOGIN
-       ↓
-Validar Login
-       ↓
-Generar resultado
 ```
 
 ---
 
 # 🛡️ Buenas prácticas
 
-### Utilizar esperas explícitas
+## Esperas explícitas
 
-Evitar depender de:
+Evitar:
 
 ```python
 time.sleep(5)
@@ -813,11 +1293,9 @@ Preferir:
 WebDriverWait(driver, 15)
 ```
 
-Esto permite que la prueba espere hasta que el elemento realmente esté disponible.
-
 ---
 
-### Utilizar locators estables
+## Locators estables
 
 Preferir:
 
@@ -825,60 +1303,168 @@ Preferir:
 AppiumBy.ACCESSIBILITY_ID
 ```
 
-antes que XPath cuando exista un Accessibility ID disponible.
-
-Ejemplo:
-
-```python
-USERNAME = (
-    AppiumBy.ACCESSIBILITY_ID,
-    "test-Username"
-)
-```
+sobre XPath cuando exista un identificador estable.
 
 ---
 
-### Separar responsabilidades
+## Separación de responsabilidades
 
-Los Steps deben describir **qué hace el usuario**.
-
-Los Page Objects deben manejar **cómo interactuar con la aplicación**.
-
-Ejemplo:
+### Step
 
 ```python
 context.login_page.enter_username(username)
 ```
 
-en lugar de colocar directamente:
+### Page Object
 
 ```python
-driver.find_element(...)
+def enter_username(self, username):
+    self.enter_text(
+        self.USERNAME,
+        username
+    )
 ```
 
-dentro del Step.
+### Base Page
+
+```python
+def enter_text(self, locator, text):
+    element = self.find_element(locator)
+    element.clear()
+    element.send_keys(text)
+```
+
+Cada capa tiene una responsabilidad diferente.
 
 ---
 
-# 📌 Próximas mejoras
+# 🔧 Troubleshooting
 
-El framework puede evolucionar incorporando:
+## Appium no encuentra el dispositivo
 
-- [ ] Validaciones completas de las pantallas.
-- [ ] Integración con base de datos.
-- [ ] Datos dinámicos de prueba.
-- [ ] Screenshots adjuntos directamente en Allure.
-- [ ] Logs detallados.
-- [ ] Videos de ejecución.
-- [ ] Ejecución paralela.
-- [ ] Configuración por ambientes.
-- [ ] Smoke Testing.
-- [ ] Regression Testing.
-- [ ] Ejecución en múltiples dispositivos.
-- [ ] Integración con GitHub Actions.
-- [ ] Integración con Jenkins.
-- [ ] Ejecución en dispositivos cloud.
-- [ ] Histórico de resultados.
+Ejecutar:
+
+```bash
+adb devices
+```
+
+Verificar:
+
+- USB Debugging.
+- Autorización del dispositivo.
+- Android SDK.
+- `ANDROID_HOME`.
+- `adb`.
+
+---
+
+## Appium no encuentra un elemento
+
+Verificar el locator en Appium Inspector.
+
+También comprobar:
+
+- Que la aplicación esté en la pantalla correcta.
+- Que el elemento esté visible.
+- Que el locator siga siendo válido.
+- Que se esté utilizando una espera explícita.
+
+---
+
+## Allure muestra Broken en lugar de Failed
+
+`Broken` normalmente representa un error técnico no controlado.
+
+Ejemplo:
+
+```text
+TimeoutException
+ConnectionError
+Database connection error
+```
+
+Si el problema representa una **validación funcional**, debe utilizarse `verify()` para convertirlo en una validación con Expected / Actual.
+
+Ejemplo:
+
+```text
+Expected:
+PRODUCTS
+
+Actual:
+PRODUCTS no encontrado
+```
+
+Esto permite que Allure lo clasifique como:
+
+```text
+Failed
+```
+
+---
+
+## No aparece evidencia de Database
+
+Verificar:
+
+1. El escenario tiene `@database`.
+2. Existe conexión a Oracle.
+3. El Repository utiliza `execute_query()`.
+4. La consulta realmente fue ejecutada.
+5. Se generaron nuevos `allure-results`.
+
+---
+
+## No aparece evidencia de API
+
+Verificar:
+
+1. El escenario tiene `@api`.
+2. `ApiClient` está inicializado.
+3. La llamada pasa por `ApiClient`.
+4. Se generaron nuevos `allure-results`.
+
+---
+
+# 📈 Roadmap
+
+## Implementado
+
+- [x] Python
+- [x] Appium
+- [x] UiAutomator2
+- [x] Behave
+- [x] Gherkin
+- [x] Page Object Model
+- [x] Esperas explícitas
+- [x] Oracle Database
+- [x] Repository Pattern
+- [x] Queries centralizadas
+- [x] API Client
+- [x] Integración REST
+- [x] Assertions reutilizables
+- [x] Screenshots por Step
+- [x] Evidencia SQL
+- [x] Evidencia API
+- [x] Expected / Actual
+- [x] Allure
+- [x] Background para precondiciones
+- [x] Escenarios Front + API + Database
+
+## Próximas mejoras
+
+- [ ] Test Data Factory
+- [ ] Datos dinámicos de prueba
+- [ ] Configuración por ambientes
+- [ ] Fixtures reutilizables
+- [ ] Ejecución paralela
+- [ ] Ejecución multi-device
+- [ ] Videos de ejecución
+- [ ] Integración GitHub Actions
+- [ ] Integración Jenkins
+- [ ] Ejecución en dispositivos Cloud
+- [ ] Histórico de resultados
+- [ ] Dockerización del framework
 
 ---
 
@@ -890,22 +1476,35 @@ El framework puede evolucionar incorporando:
 | Ver Python | `python --version` |
 | Ver ADB | `adb --version` |
 | Ver dispositivos | `adb devices` |
+| Ver emuladores | `emulator -list-avds` |
+| Iniciar emulador | `emulator -avd Pixel_7` |
 | Ver Appium | `appium --version` |
 | Iniciar Appium | `appium` |
-| Ejecutar todos los tests | `behave` |
+| Instalar UiAutomator2 | `appium driver install uiautomator2` |
+| Instalar APK | `adb install "app/application.apk"` |
+| Ejecutar todos | `behave` |
 | Ejecutar Login | `behave features/login.feature` |
 | Ejecutar Smoke | `behave --tags=smoke` |
-| Generar resultados Allure | `behave -f allure_behave.formatter:AllureFormatter -o allure-results` |
+| Ejecutar API | `behave -t @api` |
+| Ejecutar Database | `behave -t @database` |
+| Generar Allure | `behave -f allure_behave.formatter:AllureFormatter -o allure-results` |
 | Generar reporte | `allure generate allure-results -o allure-report --clean` |
-| Abrir reporte | `allure open allure-report` |
-| Ejecutar framework completo | `./run_tests.sh` |
-|iniciar emulador| `emulator -avd Pixel_7`|
-|lista de emuladores | `emulator -list-avds`|
-|instalar apk| `adb install "ruta\android.apk"`|
+| Abrir Allure | `allure open allure-report` |
+| Servir Allure | `allure serve allure-results` |
+| Ejecutar framework | `./run_tests.sh` |
+
 ---
 
 # 👨‍💻 Autor
 
-Proyecto de automatización mobile desarrollado como framework de pruebas automatizadas utilizando Python, Appium y Behave.
+Proyecto de automatización Mobile desarrollado con **Python, Appium y Behave**, extendido con integración de **APIs REST, Oracle Database, Assertions reutilizables y Allure** para generar evidencia detallada por Step.
 
 ---
+
+## 📚 Referencias
+
+- Appium: https://appium.io/
+- Behave: https://behave.readthedocs.io/
+- Allure: https://allurereport.org/
+- Python: https://www.python.org/
+- Android Developers: https://developer.android.com/
