@@ -1,11 +1,22 @@
-import allure
-
 from database.connection import DatabaseConnection
 from database.repositories.user_repository import UserRepository
 from database.repositories.account_repository import AccountRepository
 
 from api.api_client import ApiClient
 from api.pokemon_api import PokemonApi
+
+from config.config import (
+    EXECUTION_PLATFORM,
+    PLATFORM_NAME,
+    LT_DEVICE_INDEX
+)
+
+from config.devices import (
+    ANDROID_DEVICES,
+    IOS_DEVICES
+)
+
+import allure
 
 
 # =============================================================
@@ -29,12 +40,16 @@ def before_scenario(context, scenario):
 
         try:
 
+            # -------------------------------------------------
+            # CREAR CONEXIÓN
+            # -------------------------------------------------
+
             context.db = DatabaseConnection()
 
             context.db.connect()
 
             # -------------------------------------------------
-            # REPOSITORIES
+            # CREAR REPOSITORIES
             # -------------------------------------------------
 
             context.user_repository = UserRepository(
@@ -71,7 +86,7 @@ def before_scenario(context, scenario):
         try:
 
             # -------------------------------------------------
-            # API CLIENT
+            # CREAR CLIENTE API
             # -------------------------------------------------
 
             context.api_client = ApiClient(
@@ -79,7 +94,7 @@ def before_scenario(context, scenario):
             )
 
             # -------------------------------------------------
-            # POKEMON API
+            # CREAR API POKEMON
             # -------------------------------------------------
 
             context.pokemon_api = PokemonApi(
@@ -107,8 +122,8 @@ def before_scenario(context, scenario):
 
 def before_step(context, step):
 
-    # No necesitamos configurar nada.
-    pass
+ pass
+
 
 
 # =============================================================
@@ -123,26 +138,48 @@ def after_step(context, step):
     print("STATUS:", step.status)
     print("--------------------------------")
 
+
+    # =========================================================
+    # IDENTIFICAR ARCHIVO DEL STEP
+    # =========================================================
+
+    step_file = ""
+
+    try:
+
+        step_file = (
+            step.location.filename.lower()
+        )
+
+    except Exception:
+
+        pass
+
+    print(
+        "STEP FILE:",
+        step_file
+    )
+
     # =========================================================
     # DATABASE EVIDENCE
     # =========================================================
 
-    has_db_evidence = (
-        hasattr(context, "db")
-        and context.db
-        and context.db.last_query is not None
-    )
+    if hasattr(
+        context,
+        "db_evidence"
+    ):
 
-    if has_db_evidence:
-
-        print("\n🗄️ DATABASE EVIDENCE")
+        evidence = context.db_evidence
 
         # -----------------------------------------------------
         # QUERY
         # -----------------------------------------------------
 
         allure.attach(
-            context.db.last_query,
+            evidence.get(
+                "query",
+                ""
+            ),
             name="SQL Query",
             attachment_type=(
                 allure.attachment_type.TEXT
@@ -155,7 +192,10 @@ def after_step(context, step):
 
         allure.attach(
             str(
-                context.db.last_parameters
+                evidence.get(
+                    "parameters",
+                    {}
+                )
             ),
             name="SQL Parameters",
             attachment_type=(
@@ -169,7 +209,10 @@ def after_step(context, step):
 
         allure.attach(
             str(
-                context.db.last_result
+                evidence.get(
+                    "result",
+                    []
+                )
             ),
             name="SQL Result",
             attachment_type=(
@@ -178,30 +221,32 @@ def after_step(context, step):
         )
 
         print(
-            "✅ SQL EVIDENCE "
+            "🗄️ SQL EVIDENCE "
             "ADJUNTADA A ALLURE"
         )
+
+        del context.db_evidence
 
     # =========================================================
     # API EVIDENCE
     # =========================================================
 
-    has_api_evidence = (
-        hasattr(context, "api_client")
-        and context.api_client
-        and context.api_client.last_endpoint is not None
-    )
+    if hasattr(
+        context,
+        "api_evidence"
+    ):
 
-    if has_api_evidence:
-
-        print("\n🌐 API EVIDENCE")
+        evidence = context.api_evidence
 
         # -----------------------------------------------------
         # METHOD
         # -----------------------------------------------------
 
         allure.attach(
-            context.api_client.last_method,
+            evidence.get(
+                "method",
+                ""
+            ),
             name="API Method",
             attachment_type=(
                 allure.attachment_type.TEXT
@@ -213,7 +258,10 @@ def after_step(context, step):
         # -----------------------------------------------------
 
         allure.attach(
-            context.api_client.last_endpoint,
+            evidence.get(
+                "endpoint",
+                ""
+            ),
             name="API Endpoint",
             attachment_type=(
                 allure.attachment_type.TEXT
@@ -226,7 +274,10 @@ def after_step(context, step):
 
         allure.attach(
             str(
-                context.api_client.last_parameters
+                evidence.get(
+                    "parameters",
+                    {}
+                )
             ),
             name="API Parameters",
             attachment_type=(
@@ -240,7 +291,10 @@ def after_step(context, step):
 
         allure.attach(
             str(
-                context.api_client.last_status_code
+                evidence.get(
+                    "status_code",
+                    ""
+                )
             ),
             name="API Status Code",
             attachment_type=(
@@ -252,35 +306,30 @@ def after_step(context, step):
         # RESPONSE
         # -----------------------------------------------------
 
-        response = context.api_client.last_response
+        response = evidence.get(
+            "response",
+            ""
+        )
 
-        if isinstance(
-            response,
-            (dict, list)
-        ):
-
-            allure.attach(
-                str(response),
-                name="API Response",
-                attachment_type=(
-                    allure.attachment_type.JSON
+        allure.attach(
+            str(response),
+            name="API Response",
+            attachment_type=(
+                allure.attachment_type.JSON
+                if isinstance(
+                    response,
+                    (dict, list)
                 )
+                else allure.attachment_type.TEXT
             )
-
-        else:
-
-            allure.attach(
-                str(response),
-                name="API Response",
-                attachment_type=(
-                    allure.attachment_type.TEXT
-                )
-            )
+        )
 
         print(
-            "✅ API EVIDENCE "
+            "🌐 API EVIDENCE "
             "ADJUNTADA A ALLURE"
         )
+
+        del context.api_evidence
 
     # =========================================================
     # ASSERTION EVIDENCE
@@ -290,8 +339,6 @@ def after_step(context, step):
         context,
         "assert_evidence"
     ):
-
-        print("\n🔎 ASSERTION EVIDENCE")
 
         evidence = context.assert_evidence
 
@@ -347,33 +394,32 @@ def after_step(context, step):
         )
 
         print(
-            "✅ ASSERTION EVIDENCE "
+            "🔎 ASSERTION EVIDENCE "
             "ADJUNTADA A ALLURE"
         )
-
-        # -----------------------------------------------------
-        # LIMPIAR ASSERTION
-        # -----------------------------------------------------
 
         del context.assert_evidence
 
     # =========================================================
     # APPIUM SCREENSHOT
     # =========================================================
-    #
-    # Se captura solamente cuando el step:
-    #
-    # - Tiene Appium disponible
-    # - NO ejecutó una consulta SQL
-    # - NO ejecutó una llamada API
-    #
-    # =========================================================
+
+    is_api_step = (
+        "api_steps.py" in step_file
+    )
+
+    is_database_step = (
+        "database_steps.py" in step_file
+    )
 
     if (
-        hasattr(context, "driver")
+        hasattr(
+            context,
+            "driver"
+        )
         and context.driver
-        and not has_db_evidence
-        and not has_api_evidence
+        and not is_api_step
+        and not is_database_step
     ):
 
         try:
@@ -395,40 +441,18 @@ def after_step(context, step):
             )
 
             print(
-                "📸 SCREENSHOT "
-                "ADJUNTADO A ALLURE"
+                "📸 SCREENSHOT ADJUNTADO "
+                f"A ALLURE: {step.name}"
             )
 
         except Exception as e:
 
             print(
                 "\n❌ ERROR AL CAPTURAR "
-                "SCREENSHOT:"
+                "SCREENSHOT DEL STEP:"
             )
 
             print(e)
-
-    # =========================================================
-    # LIMPIAR EVIDENCIA DATABASE
-    # =========================================================
-
-    if hasattr(context, "db"):
-
-        context.db.last_query = None
-        context.db.last_parameters = None
-        context.db.last_result = None
-
-    # =========================================================
-    # LIMPIAR EVIDENCIA API
-    # =========================================================
-
-    if hasattr(context, "api_client"):
-
-        context.api_client.last_method = None
-        context.api_client.last_endpoint = None
-        context.api_client.last_parameters = None
-        context.api_client.last_status_code = None
-        context.api_client.last_response = None
 
 
 # =============================================================
@@ -447,10 +471,13 @@ def after_scenario(context, scenario):
     # CERRAR APPIUM
     # =========================================================
 
-    if hasattr(
-        context,
-        "driver"
-    ) and context.driver:
+    if (
+        hasattr(
+            context,
+            "driver"
+        )
+        and context.driver
+    ):
 
         try:
 
@@ -496,14 +523,6 @@ def after_scenario(context, scenario):
 
             print(e)
 
-    print(
-        "\n=============================="
-    )
-
-    print(
-        "FIN DEL SCENARIO"
-    )
-
-    print(
-        "==============================\n"
-    )
+    print("\n==============================")
+    print("FIN DEL SCENARIO")
+    print("==============================\n")

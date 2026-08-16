@@ -10,10 +10,6 @@ ANDROID_DEVICES = [
         "platform_version": "16"
     },
 
-    {
-        "name": "Moto G54 5G",
-        "platform_version": "15"
-    }
 ]
 
 
