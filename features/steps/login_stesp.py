@@ -59,3 +59,10 @@ def step_verify_login(context):
 @then("debería mostrar un mensaje de error indicando que las credenciales son inválidas")
 def step_verify_invalid_login(context):
     users = context.user_repository.get_users()
+
+    verify(
+        context,
+        actual=users[2]["USUARIO"],
+        expected="test_user",
+        description="El usuario debería ingresar a la pantalla principal"
+    )

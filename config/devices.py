@@ -1,13 +1,13 @@
 ANDROID_DEVICES = [
 
     {
-        "name": "Galaxy S23",
-        "platform_version": "14"
+        "name": "Galaxy S26",
+        "platform_version": "16"
     },
 
     {
-        "name": "Pixel 10 Pro",
-        "platform_version": "16"
+        "name": "Galaxy S24",
+        "platform_version": "14"
     },
 
 ]

@@ -224,6 +224,9 @@ def create_lambdatest_driver(platform):
             "isRealMobile":
                 True,
 
+            "tunnel": 
+                False,
+
             "build":
                 "Mobile Automation",
 

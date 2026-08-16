@@ -1,3 +1,4 @@
+@smoke
 Feature: Integración Front API y Base de Datos
 
     @api @database
