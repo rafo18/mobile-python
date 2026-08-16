@@ -1,13 +1,13 @@
-from api.endpoints import Endpoints
+from api.base_api import BaseApi
 
 
-class PokemonApi:
+class PokemonApi(BaseApi):
 
-    def __init__(self, client):
-        self.client = client
+    def get_pokemon(
+        self,
+        pokemon
+    ):
 
-    def get_pokemon(self, pokemon):
-
-        return self.client.get(
-            f"{Endpoints.POKEMON}/{pokemon}"
+        return self.api_client.get(
+            f"/pokemon/{pokemon}"
         )

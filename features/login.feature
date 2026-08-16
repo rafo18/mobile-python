@@ -1,5 +1,6 @@
-Feature: Login
 @smoke
+Feature: Login
+
   Scenario: Login exitoso con credenciales válidas
     Given que el usuario abre la aplicación
     When ingresa el usuario "standard_user"
@@ -7,7 +8,7 @@ Feature: Login
     And presiona el botón LOGIN
     Then debería ingresar correctamente a la aplicación
 
-@smoke @database
+@database
   Scenario: Login fallido con credenciales inválidas
     Given que el usuario abre la aplicación
     When ingresa el usuario "invalid_user"

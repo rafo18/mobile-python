@@ -4,16 +4,11 @@ from database.repositories.account_repository import AccountRepository
 
 from api.api_client import ApiClient
 from api.pokemon_api import PokemonApi
+from api.test_api import TestApi
 
-from config.config import (
-    EXECUTION_PLATFORM,
-    PLATFORM_NAME,
-    LT_DEVICE_INDEX
-)
-
-from config.devices import (
-    ANDROID_DEVICES,
-    IOS_DEVICES
+from config.api_config import (
+    POKEMON_API_URL,
+    TEST_API_URL
 )
 
 import allure
@@ -36,28 +31,28 @@ def before_scenario(context, scenario):
 
     if "database" in scenario.effective_tags:
 
-        print("\n🗄️ CONECTANDO A BASE DE DATOS...")
+        print(
+            "\n🗄️ CONECTANDO A BASE DE DATOS..."
+        )
 
         try:
 
-            # -------------------------------------------------
-            # CREAR CONEXIÓN
-            # -------------------------------------------------
-
-            context.db = DatabaseConnection()
+            context.db = (
+                DatabaseConnection()
+            )
 
             context.db.connect()
 
-            # -------------------------------------------------
-            # CREAR REPOSITORIES
-            # -------------------------------------------------
-
-            context.user_repository = UserRepository(
-                context.db
+            context.user_repository = (
+                UserRepository(
+                    context.db
+                )
             )
 
-            context.account_repository = AccountRepository(
-                context.db
+            context.account_repository = (
+                AccountRepository(
+                    context.db
+                )
             )
 
             print(
@@ -81,34 +76,82 @@ def before_scenario(context, scenario):
 
     if "api" in scenario.effective_tags:
 
-        print("\n🌐 CONFIGURANDO API...")
+        print(
+            "\n🌐 CONFIGURANDO APIs..."
+        )
 
         try:
 
-            # -------------------------------------------------
-            # CREAR CLIENTE API
-            # -------------------------------------------------
+            # =================================================
+            # LISTA CENTRAL DE APIS
+            # =================================================
+
+            context.api_clients = []
+
+            # =================================================
+            # POKEMON API
+            # =================================================
 
             context.api_client = ApiClient(
-                "https://pokeapi.co/api/v2"
+
+                base_url=POKEMON_API_URL,
+
+                name="PokeAPI"
             )
 
-            # -------------------------------------------------
-            # CREAR API POKEMON
-            # -------------------------------------------------
+            context.pokemon_api = (
+                PokemonApi(
+                    context.api_client
+                )
+            )
 
-            context.pokemon_api = PokemonApi(
+            context.api_clients.append(
                 context.api_client
             )
 
+            # =================================================
+            # TEST API
+            # =================================================
+
+            context.test_api_client = ApiClient(
+
+                base_url=TEST_API_URL,
+
+                name="JSONPlaceholder"
+            )
+
+            context.test_api = (
+                TestApi(
+                    context.test_api_client
+                )
+            )
+
+            context.api_clients.append(
+                context.test_api_client
+            )
+
+            # =================================================
+            # LOG
+            # =================================================
+
             print(
-                "✅ API CONFIGURADA"
+                "\n🌐 APIs CONFIGURADAS:"
+            )
+
+            for api in context.api_clients:
+
+                print(
+                    f"   • {api.name}"
+                )
+
+            print(
+                "\n✅ APIs CONFIGURADAS"
             )
 
         except Exception as e:
 
             print(
-                "\n❌ ERROR AL CONFIGURAR API:"
+                "\n❌ ERROR AL CONFIGURAR APIs:"
             )
 
             print(e)
@@ -122,8 +165,7 @@ def before_scenario(context, scenario):
 
 def before_step(context, step):
 
- pass
-
+    pass
 
 
 # =============================================================
@@ -137,7 +179,6 @@ def after_step(context, step):
     print("STEP:", step.name)
     print("STATUS:", step.status)
     print("--------------------------------")
-
 
     # =========================================================
     # IDENTIFICAR ARCHIVO DEL STEP
@@ -171,14 +212,11 @@ def after_step(context, step):
 
         evidence = context.db_evidence
 
-        # -----------------------------------------------------
-        # QUERY
-        # -----------------------------------------------------
-
         allure.attach(
-            evidence.get(
-                "query",
-                ""
+            str(
+                evidence.get(
+                    "query"
+                ) or ""
             ),
             name="SQL Query",
             attachment_type=(
@@ -186,16 +224,11 @@ def after_step(context, step):
             )
         )
 
-        # -----------------------------------------------------
-        # PARAMETERS
-        # -----------------------------------------------------
-
         allure.attach(
             str(
                 evidence.get(
-                    "parameters",
-                    {}
-                )
+                    "parameters"
+                ) or {}
             ),
             name="SQL Parameters",
             attachment_type=(
@@ -203,16 +236,11 @@ def after_step(context, step):
             )
         )
 
-        # -----------------------------------------------------
-        # RESULT
-        # -----------------------------------------------------
-
         allure.attach(
             str(
                 evidence.get(
-                    "result",
-                    []
-                )
+                    "result"
+                ) or []
             ),
             name="SQL Result",
             attachment_type=(
@@ -231,21 +259,75 @@ def after_step(context, step):
     # API EVIDENCE
     # =========================================================
 
+    api_client = None
+
     if hasattr(
         context,
-        "api_evidence"
+        "api_clients"
     ):
 
-        evidence = context.api_evidence
+        for client in context.api_clients:
 
-        # -----------------------------------------------------
-        # METHOD
-        # -----------------------------------------------------
+            if client.has_evidence:
+
+                api_client = client
+
+                break
+
+    # =========================================================
+    # ADJUNTAR API EVIDENCE
+    # =========================================================
+
+    if api_client:
+
+        evidence = (
+            api_client.get_last_evidence()
+        )
+
+        print(
+            "\n🌐 API CALL DETECTADA"
+        )
+
+        print(
+            "API:",
+            evidence.get("api")
+        )
+
+        print(
+            "METHOD:",
+            evidence.get("method")
+        )
+
+        print(
+            "ENDPOINT:",
+            evidence.get("endpoint")
+        )
+
+        # =====================================================
+        # API
+        # =====================================================
 
         allure.attach(
-            evidence.get(
-                "method",
-                ""
+            str(
+                evidence.get(
+                    "api"
+                ) or ""
+            ),
+            name="API",
+            attachment_type=(
+                allure.attachment_type.TEXT
+            )
+        )
+
+        # =====================================================
+        # METHOD
+        # =====================================================
+
+        allure.attach(
+            str(
+                evidence.get(
+                    "method"
+                ) or ""
             ),
             name="API Method",
             attachment_type=(
@@ -253,14 +335,15 @@ def after_step(context, step):
             )
         )
 
-        # -----------------------------------------------------
+        # =====================================================
         # ENDPOINT
-        # -----------------------------------------------------
+        # =====================================================
 
         allure.attach(
-            evidence.get(
-                "endpoint",
-                ""
+            str(
+                evidence.get(
+                    "endpoint"
+                ) or ""
             ),
             name="API Endpoint",
             attachment_type=(
@@ -268,33 +351,37 @@ def after_step(context, step):
             )
         )
 
-        # -----------------------------------------------------
+        # =====================================================
         # PARAMETERS
-        # -----------------------------------------------------
+        # =====================================================
+
+        parameters = (
+            evidence.get(
+                "parameters"
+            )
+        )
+
+        if parameters is None:
+
+            parameters = {}
 
         allure.attach(
-            str(
-                evidence.get(
-                    "parameters",
-                    {}
-                )
-            ),
+            str(parameters),
             name="API Parameters",
             attachment_type=(
                 allure.attachment_type.TEXT
             )
         )
 
-        # -----------------------------------------------------
+        # =====================================================
         # STATUS CODE
-        # -----------------------------------------------------
+        # =====================================================
 
         allure.attach(
             str(
                 evidence.get(
-                    "status_code",
-                    ""
-                )
+                    "status_code"
+                ) or ""
             ),
             name="API Status Code",
             attachment_type=(
@@ -302,14 +389,19 @@ def after_step(context, step):
             )
         )
 
-        # -----------------------------------------------------
+        # =====================================================
         # RESPONSE
-        # -----------------------------------------------------
+        # =====================================================
 
-        response = evidence.get(
-            "response",
-            ""
+        response = (
+            evidence.get(
+                "response"
+            )
         )
+
+        if response is None:
+
+            response = ""
 
         allure.attach(
             str(response),
@@ -329,7 +421,11 @@ def after_step(context, step):
             "ADJUNTADA A ALLURE"
         )
 
-        del context.api_evidence
+        # =====================================================
+        # LIMPIAR EVIDENCIA
+        # =====================================================
+
+        api_client.clear_last_evidence()
 
     # =========================================================
     # ASSERTION EVIDENCE
@@ -342,16 +438,11 @@ def after_step(context, step):
 
         evidence = context.assert_evidence
 
-        # -----------------------------------------------------
-        # DESCRIPTION
-        # -----------------------------------------------------
-
         allure.attach(
             str(
                 evidence.get(
-                    "description",
-                    "Assertion"
-                )
+                    "description"
+                ) or "Assertion"
             ),
             name="Assertion",
             attachment_type=(
@@ -359,16 +450,11 @@ def after_step(context, step):
             )
         )
 
-        # -----------------------------------------------------
-        # EXPECTED
-        # -----------------------------------------------------
-
         allure.attach(
             str(
                 evidence.get(
-                    "expected",
-                    ""
-                )
+                    "expected"
+                ) or ""
             ),
             name="Expected",
             attachment_type=(
@@ -376,16 +462,11 @@ def after_step(context, step):
             )
         )
 
-        # -----------------------------------------------------
-        # ACTUAL
-        # -----------------------------------------------------
-
         allure.attach(
             str(
                 evidence.get(
-                    "actual",
-                    ""
-                )
+                    "actual"
+                ) or ""
             ),
             name="Actual",
             attachment_type=(
@@ -523,6 +604,14 @@ def after_scenario(context, scenario):
 
             print(e)
 
-    print("\n==============================")
-    print("FIN DEL SCENARIO")
-    print("==============================\n")
+    print(
+        "\n=============================="
+    )
+
+    print(
+        "FIN DEL SCENARIO"
+    )
+
+    print(
+        "==============================\n"
+    )
