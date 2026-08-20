@@ -1,29 +1,65 @@
 from appium import webdriver
+
 from appium.options.android import UiAutomator2Options
 from appium.options.ios import XCUITestOptions
 
 from config.config import (
+    # =========================================================
+    # EXECUTION
+    # =========================================================
     EXECUTION_PLATFORM,
-
-    # LOCAL
-    APPIUM_SERVER,
+    LT_TUNNEL,
     PLATFORM_NAME,
+
+    # =========================================================
+    # LOCAL
+    # =========================================================
+    APPIUM_SERVER,
     DEVICE_NAME,
     APP_PACKAGE,
     APP_ACTIVITY,
 
+    # =========================================================
     # LAMBDATEST
+    # =========================================================
     LT_USERNAME,
     LT_ACCESS_KEY,
     LT_APP,
-    LT_DEVICE_INDEX
+    LT_DEVICE_INDEX,
+
+    # =========================================================
+    # BROWSERSTACK
+    # =========================================================
+    BS_USERNAME,
+    BS_ACCESS_KEY,
+    BS_APP,
+    BS_DEVICE_INDEX,
+
+    # =========================================================
+    # BROWSERSTACK LOCAL
+    # =========================================================
+    BS_LOCAL,
+    BS_LOCAL_IDENTIFIER
 )
 
 from config.devices import (
-    ANDROID_DEVICES,
-    IOS_DEVICES
+    # =========================================================
+    # LAMBDATEST
+    # =========================================================
+    LAMBDATEST_ANDROID_DEVICES,
+    LAMBDATEST_IOS_DEVICES,
+
+    # =========================================================
+    # BROWSERSTACK
+    # =========================================================
+    BROWSERSTACK_ANDROID_DEVICES,
+    BROWSERSTACK_IOS_DEVICES
 )
 
+
+# =============================================================
+# CREATE DRIVER
+# =============================================================
 
 def create_driver():
 
@@ -49,6 +85,20 @@ def create_driver():
             platform
         )
 
+    # =========================================================
+    # BROWSERSTACK
+    # =========================================================
+
+    elif EXECUTION_PLATFORM == "browserstack":
+
+        return create_browserstack_driver(
+            platform
+        )
+
+    # =========================================================
+    # NO SOPORTADO
+    # =========================================================
+
     else:
 
         raise ValueError(
@@ -58,14 +108,21 @@ def create_driver():
 
 
 # =============================================================
-# LOCAL
+# LOCAL APPIUM
 # =============================================================
 
 def create_local_driver(platform):
 
-    # ---------------------------------------------------------
+    print("\n=================================")
+    print("💻 LOCAL APPIUM")
+    print("=================================")
+    print(f"Platform: {platform}")
+    print(f"Device: {DEVICE_NAME}")
+    print("=================================\n")
+
+    # =========================================================
     # ANDROID
-    # ---------------------------------------------------------
+    # =========================================================
 
     if platform == "android":
 
@@ -84,9 +141,9 @@ def create_local_driver(platform):
 
         options.no_reset = False
 
-    # ---------------------------------------------------------
+    # =========================================================
     # IOS
-    # ---------------------------------------------------------
+    # =========================================================
 
     elif platform == "ios":
 
@@ -107,6 +164,10 @@ def create_local_driver(platform):
             f"{PLATFORM_NAME}"
         )
 
+    # =========================================================
+    # CREAR DRIVER
+    # =========================================================
+
     driver = webdriver.Remote(
         command_executor=APPIUM_SERVER,
         options=options
@@ -122,16 +183,16 @@ def create_local_driver(platform):
 def create_lambdatest_driver(platform):
 
     # =========================================================
-    # OBTENER DISPOSITIVO
+    # OBTENER DISPOSITIVOS
     # =========================================================
-    
+
     if platform == "android":
 
-        devices = ANDROID_DEVICES
+        devices = LAMBDATEST_ANDROID_DEVICES
 
     elif platform == "ios":
 
-        devices = IOS_DEVICES
+        devices = LAMBDATEST_IOS_DEVICES
 
     else:
 
@@ -159,37 +220,33 @@ def create_lambdatest_driver(platform):
         )
 
     # =========================================================
-    # DISPOSITIVO SELECCIONADO
+    # DISPOSITIVO
     # =========================================================
 
-    device = devices[LT_DEVICE_INDEX]
+    device = devices[
+        LT_DEVICE_INDEX
+    ]
 
-    device_name = device["name"]
+    device_name = device[
+        "name"
+    ]
 
     platform_version = device[
         "platform_version"
     ]
 
+    # =========================================================
+    # LOG
+    # =========================================================
+
     print("\n=================================")
-    print("📱 LAMBDATEST DEVICE")
+    print("📱 LAMBDATEST")
     print("=================================")
     print(f"Device: {device_name}")
     print(f"Platform: {platform}")
     print(f"Version: {platform_version}")
     print(f"Index: {LT_DEVICE_INDEX}")
     print("=================================\n")
-
-    print(
-        "\n📱 DISPOSITIVO SELECCIONADO:"
-    )
-
-    print(
-        f"   Device: {device_name}"
-    )
-
-    print(
-        f"   OS: {platform} {platform_version}"
-    )
 
     # =========================================================
     # ANDROID
@@ -201,7 +258,8 @@ def create_lambdatest_driver(platform):
 
         options.load_capabilities({
 
-            "platformName": "Android",
+            "platformName":
+                "Android",
 
             "appium:deviceName":
                 device_name,
@@ -224,8 +282,8 @@ def create_lambdatest_driver(platform):
             "isRealMobile":
                 True,
 
-            "tunnel": 
-                False,
+            "tunnel":
+                LT_TUNNEL,
 
             "build":
                 "Mobile Automation",
@@ -256,7 +314,8 @@ def create_lambdatest_driver(platform):
 
         options.load_capabilities({
 
-            "platformName": "iOS",
+            "platformName":
+                "iOS",
 
             "appium:deviceName":
                 device_name,
@@ -306,6 +365,336 @@ def create_lambdatest_driver(platform):
         f"https://{LT_USERNAME}:"
         f"{LT_ACCESS_KEY}"
         "@mobile-hub.lambdatest.com/wd/hub"
+    )
+
+    # =========================================================
+    # CREAR DRIVER
+    # =========================================================
+
+    driver = webdriver.Remote(
+        command_executor=command_executor,
+        options=options
+    )
+
+    return driver
+
+
+# =============================================================
+# BROWSERSTACK
+# =============================================================
+
+def create_browserstack_driver(platform):
+
+    # =========================================================
+    # VALIDAR CREDENCIALES
+    # =========================================================
+
+    if not BS_USERNAME:
+
+        raise ValueError(
+            "BS_USERNAME no está configurado "
+            "en el archivo .env"
+        )
+
+    if not BS_ACCESS_KEY:
+
+        raise ValueError(
+            "BS_ACCESS_KEY no está configurado "
+            "en el archivo .env"
+        )
+
+    if not BS_APP:
+
+        raise ValueError(
+            "BS_APP no está configurado "
+            "en el archivo .env"
+        )
+
+    # =========================================================
+    # LOG BROWSERSTACK LOCAL
+    # =========================================================
+
+    print("\n=================================")
+    print("🌐 BROWSERSTACK LOCAL CONFIG")
+    print("=================================")
+
+    print(
+        f"BS_LOCAL: {BS_LOCAL}"
+    )
+
+    print(
+        f"BS_LOCAL_IDENTIFIER: "
+        f"{BS_LOCAL_IDENTIFIER}"
+    )
+
+    print("=================================\n")
+
+    # =========================================================
+    # OBTENER DISPOSITIVOS
+    # =========================================================
+
+    if platform == "android":
+
+        devices = BROWSERSTACK_ANDROID_DEVICES
+
+    elif platform == "ios":
+
+        devices = BROWSERSTACK_IOS_DEVICES
+
+    else:
+
+        raise ValueError(
+            f"Plataforma móvil no soportada: "
+            f"{PLATFORM_NAME}"
+        )
+
+    # =========================================================
+    # VALIDAR INDEX
+    # =========================================================
+
+    if BS_DEVICE_INDEX < 0:
+
+        raise ValueError(
+            "BS_DEVICE_INDEX no puede ser negativo"
+        )
+
+    if BS_DEVICE_INDEX >= len(devices):
+
+        raise ValueError(
+            f"BS_DEVICE_INDEX={BS_DEVICE_INDEX} "
+            f"no existe. "
+            f"Hay {len(devices)} dispositivos configurados."
+        )
+
+    # =========================================================
+    # DISPOSITIVO
+    # =========================================================
+
+    device = devices[
+        BS_DEVICE_INDEX
+    ]
+
+    device_name = device[
+        "name"
+    ]
+
+    platform_version = device[
+        "platform_version"
+    ]
+
+    # =========================================================
+    # LOG
+    # =========================================================
+
+    print("\n=================================")
+    print("🌐 BROWSERSTACK")
+    print("=================================")
+
+    print(
+        f"Device: {device_name}"
+    )
+
+    print(
+        f"Platform: {platform}"
+    )
+
+    print(
+        f"Version: {platform_version}"
+    )
+
+    print(
+        f"Index: {BS_DEVICE_INDEX}"
+    )
+
+    print(
+        f"App: {BS_APP}"
+    )
+
+    print(
+        f"Local: {BS_LOCAL}"
+    )
+
+    print(
+        f"Local Identifier: "
+        f"{BS_LOCAL_IDENTIFIER}"
+    )
+
+    print("=================================\n")
+
+    # =========================================================
+    # ANDROID
+    # =========================================================
+
+    if platform == "android":
+
+        options = UiAutomator2Options()
+
+        options.load_capabilities({
+
+            # -------------------------------------------------
+            # APPIUM
+            # -------------------------------------------------
+
+            "platformName":
+                "Android",
+
+            "appium:deviceName":
+                device_name,
+
+            "appium:platformVersion":
+                platform_version,
+
+            "appium:automationName":
+                "UiAutomator2",
+
+            "appium:app":
+                BS_APP,
+
+            "appium:noReset":
+                False,
+
+            "appium:newCommandTimeout":
+                120,
+
+            # -------------------------------------------------
+            # BROWSERSTACK OPTIONS
+            # -------------------------------------------------
+
+            "bstack:options": {
+
+                "userName":
+                    BS_USERNAME,
+
+                "accessKey":
+                    BS_ACCESS_KEY,
+
+                "projectName":
+                    "Mobile Automation",
+
+                "buildName":
+                    "Smoke",
+
+                "sessionName":
+                    f"Android - {device_name}",
+
+                # -------------------------------------------------
+                # LOCAL TESTING
+                # -------------------------------------------------
+
+                "local":
+                    BS_LOCAL,
+
+                "localIdentifier":
+                    BS_LOCAL_IDENTIFIER,
+
+                # -------------------------------------------------
+                # LOGS
+                # -------------------------------------------------
+
+                "debug":
+                    True,
+
+                "networkLogs":
+                    True,
+
+                "deviceLogs":
+                    True,
+
+                "video":
+                    True
+            }
+        })
+
+    # =========================================================
+    # IOS
+    # =========================================================
+
+    else:
+
+        options = XCUITestOptions()
+
+        options.load_capabilities({
+
+            # -------------------------------------------------
+            # APPIUM
+            # -------------------------------------------------
+
+            "platformName":
+                "iOS",
+
+            "appium:deviceName":
+                device_name,
+
+            "appium:platformVersion":
+                platform_version,
+
+            "appium:automationName":
+                "XCUITest",
+
+            "appium:app":
+                BS_APP,
+
+            "appium:noReset":
+                False,
+
+            "appium:newCommandTimeout":
+                120,
+
+            # -------------------------------------------------
+            # BROWSERSTACK OPTIONS
+            # -------------------------------------------------
+
+            "bstack:options": {
+
+                "userName":
+                    BS_USERNAME,
+
+                "accessKey":
+                    BS_ACCESS_KEY,
+
+                "projectName":
+                    "Mobile Automation",
+
+                "buildName":
+                    "Smoke",
+
+                "sessionName":
+                    f"iOS - {device_name}",
+
+                # -------------------------------------------------
+                # LOCAL TESTING
+                # -------------------------------------------------
+
+                "local":
+                    BS_LOCAL,
+
+                "localIdentifier":
+                    BS_LOCAL_IDENTIFIER,
+
+                # -------------------------------------------------
+                # LOGS
+                # -------------------------------------------------
+
+                "debug":
+                    True,
+
+                "networkLogs":
+                    True,
+
+                "deviceLogs":
+                    True,
+
+                "video":
+                    True
+            }
+        })
+
+    # =========================================================
+    # BROWSERSTACK HUB
+    # =========================================================
+
+    command_executor = (
+        "https://hub.browserstack.com/wd/hub"
     )
 
     # =========================================================

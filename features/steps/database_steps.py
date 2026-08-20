@@ -42,8 +42,6 @@ def verify_account(context, id_cuenta):
                 "result": account
             }
 
-from behave import then
-
 
 @then("debería existir información de usuarios en la base de datos")
 def step_verify_users_database(context):

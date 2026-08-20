@@ -4,7 +4,18 @@ import shutil
 import hashlib
 import subprocess
 
-from config.devices import ANDROID_DEVICES
+
+from config.config import (
+    EXECUTION_PLATFORM,
+    PLATFORM_NAME
+)
+
+from config.devices import (
+    LAMBDATEST_ANDROID_DEVICES,
+    LAMBDATEST_IOS_DEVICES,
+    BROWSERSTACK_ANDROID_DEVICES,
+    BROWSERSTACK_IOS_DEVICES
+)
 
 
 # =============================================================
@@ -12,6 +23,74 @@ from config.devices import ANDROID_DEVICES
 # =============================================================
 
 ALLURE_RESULTS = "allure-results"
+
+
+# =============================================================
+# OBTENER DISPOSITIVOS
+# =============================================================
+
+def get_devices():
+
+    execution = EXECUTION_PLATFORM.lower()
+
+    platform = PLATFORM_NAME.lower()
+
+    # =========================================================
+    # LAMBDATEST
+    # =========================================================
+
+    if execution == "lambdatest":
+
+        if platform == "android":
+
+            return LAMBDATEST_ANDROID_DEVICES
+
+        elif platform == "ios":
+
+            return LAMBDATEST_IOS_DEVICES
+
+    # =========================================================
+    # BROWSERSTACK
+    # =========================================================
+
+    elif execution == "browserstack":
+
+        if platform == "android":
+
+            return BROWSERSTACK_ANDROID_DEVICES
+
+        elif platform == "ios":
+
+            return BROWSERSTACK_IOS_DEVICES
+
+    raise ValueError(
+        f"No existen dispositivos configurados "
+        f"para {execution} / {platform}"
+    )
+
+
+# =============================================================
+# OBTENER NOMBRE DEL ÍNDICE
+# =============================================================
+
+def get_device_index_variable():
+
+    execution = EXECUTION_PLATFORM.lower()
+
+    if execution == "lambdatest":
+
+        return "LT_DEVICE_INDEX"
+
+    elif execution == "browserstack":
+
+        return "BS_DEVICE_INDEX"
+
+    else:
+
+        raise ValueError(
+            f"Multi-device no soportado para: "
+            f"{execution}"
+        )
 
 
 # =============================================================
@@ -30,10 +109,23 @@ def add_device_to_allure_results(
     print("=================================")
     print("📊 ACTUALIZANDO ALLURE")
     print("=================================")
-    print(f"Device: {device_name}")
-    print(f"Platform: {platform}")
-    print(f"Version: {platform_version}")
-    print(f"Execution: {execution}")
+
+    print(
+        f"Provider: {execution}"
+    )
+
+    print(
+        f"Device: {device_name}"
+    )
+
+    print(
+        f"Platform: {platform}"
+    )
+
+    print(
+        f"Version: {platform_version}"
+    )
+
     print("=================================")
 
     if not os.path.exists(
@@ -51,7 +143,7 @@ def add_device_to_allure_results(
         return
 
     # =========================================================
-    # RECORRER ARCHIVOS DE RESULTADOS
+    # RECORRER RESULTADOS
     # =========================================================
 
     for filename in os.listdir(
@@ -92,9 +184,9 @@ def add_device_to_allure_results(
                 []
             )
 
-            # =================================================
+            # -------------------------------------------------
             # ELIMINAR PARÁMETROS ANTERIORES
-            # =================================================
+            # -------------------------------------------------
 
             parameters = [
                 parameter
@@ -108,55 +200,70 @@ def add_device_to_allure_results(
                 ]
             ]
 
-            # =================================================
+            # -------------------------------------------------
             # DEVICE
-            # =================================================
+            # -------------------------------------------------
 
             parameters.append({
-                "name": "Device",
-                "value": device_name
+                "name":
+                    "Device",
+
+                "value":
+                    device_name
             })
 
-            # =================================================
+            # -------------------------------------------------
             # PLATFORM
-            # =================================================
+            # -------------------------------------------------
 
             parameters.append({
-                "name": "Platform",
-                "value": platform
+                "name":
+                    "Platform",
+
+                "value":
+                    platform
             })
 
-            # =================================================
+            # -------------------------------------------------
             # VERSION
-            # =================================================
+            # -------------------------------------------------
 
             parameters.append({
-                "name": "Version",
-                "value": platform_version
+                "name":
+                    "Version",
+
+                "value":
+                    platform_version
             })
 
-            # =================================================
+            # -------------------------------------------------
             # EXECUTION
-            # =================================================
+            # -------------------------------------------------
 
             parameters.append({
-                "name": "Execution",
-                "value": execution
+                "name":
+                    "Execution",
+
+                "value":
+                    execution
             })
 
-            result["parameters"] = parameters
-            # =========================================================
+            result[
+                "parameters"
+            ] = parameters
+
+            # =================================================
             # ALLURE SUITES
-            # =========================================================
+            # =================================================
 
             labels = result.get(
                 "labels",
                 []
             )
 
-            # ---------------------------------------------------------
+            # -------------------------------------------------
             # ELIMINAR SUITES ANTERIORES
-            # ---------------------------------------------------------
+            # -------------------------------------------------
 
             labels = [
                 label
@@ -169,27 +276,33 @@ def add_device_to_allure_results(
                 ]
             ]
 
-            # ---------------------------------------------------------
+            # -------------------------------------------------
             # PARENT SUITE
-            # ---------------------------------------------------------
+            # -------------------------------------------------
 
             labels.append({
-                "name": "parentSuite",
-                "value": "LambdaTest"
+                "name":
+                    "parentSuite",
+
+                "value":
+                    execution
             })
 
-            # ---------------------------------------------------------
+            # -------------------------------------------------
             # SUITE = DISPOSITIVO
-            # ---------------------------------------------------------
+            # -------------------------------------------------
 
             labels.append({
-                "name": "suite",
-                "value": device_name
+                "name":
+                    "suite",
+
+                "value":
+                    device_name
             })
 
-            # ---------------------------------------------------------
+            # -------------------------------------------------
             # SUB SUITE = FEATURE
-            # ---------------------------------------------------------
+            # -------------------------------------------------
 
             feature_name = result.get(
                 "name",
@@ -197,11 +310,16 @@ def add_device_to_allure_results(
             )
 
             labels.append({
-                "name": "subSuite",
-                "value": feature_name
+                "name":
+                    "subSuite",
+
+                "value":
+                    feature_name
             })
 
-            result["labels"] = labels
+            result[
+                "labels"
+            ] = labels
 
             # =================================================
             # HISTORY ID
@@ -230,11 +348,12 @@ def add_device_to_allure_results(
                 )
 
             # =================================================
-            # CREAR IDENTIFICADOR ÚNICO POR DISPOSITIVO
+            # IDENTIFICADOR POR PROVEEDOR + DISPOSITIVO
             # =================================================
 
             history_key = (
                 f"{original_history_id}|"
+                f"Execution={execution}|"
                 f"Device={device_name}|"
                 f"Platform={platform}|"
                 f"Version={platform_version}"
@@ -246,12 +365,12 @@ def add_device_to_allure_results(
                 )
             ).hexdigest()
 
-            result["historyId"] = (
-                new_history_id
-            )
+            result[
+                "historyId"
+            ] = new_history_id
 
             # =================================================
-            # GUARDAR JSON
+            # GUARDAR
             # =================================================
 
             with open(
@@ -269,6 +388,10 @@ def add_device_to_allure_results(
 
             print(
                 f"✅ Actualizado: {filename}"
+            )
+
+            print(
+                f"   Provider: {execution}"
             )
 
             print(
@@ -350,8 +473,44 @@ def merge_allure_results(
 
 def run_tests_on_devices():
 
+    execution = (
+        EXECUTION_PLATFORM.lower()
+    )
+
+    platform = (
+        PLATFORM_NAME
+    )
+
     # =========================================================
-    # LIMPIAR RESULTADOS ANTERIORES
+    # VALIDAR PLATAFORMA
+    # =========================================================
+
+    if execution not in [
+        "lambdatest",
+        "browserstack"
+    ]:
+
+        raise ValueError(
+            "run_devices.py solamente soporta "
+            "LambdaTest y BrowserStack."
+        )
+
+    # =========================================================
+    # OBTENER DISPOSITIVOS
+    # =========================================================
+
+    devices = get_devices()
+
+    # =========================================================
+    # OBTENER VARIABLE DE ÍNDICE
+    # =========================================================
+
+    device_index_variable = (
+        get_device_index_variable()
+    )
+
+    # =========================================================
+    # LIMPIAR RESULTADOS
     # =========================================================
 
     if os.path.exists(
@@ -368,15 +527,41 @@ def run_tests_on_devices():
 
     print("\n")
     print("=" * 60)
-    print("🧹 ALLURE RESULTS LIMPIADO")
+    print("🚀 MULTI-DEVICE EXECUTION")
     print("=" * 60)
+
+    print(
+        f"Provider: {execution}"
+    )
+
+    print(
+        f"Platform: {platform}"
+    )
+
+    print(
+        f"Devices: {len(devices)}"
+    )
+
+    print("=" * 60)
+
+    # =========================================================
+    # VARIABLES DE CONTROL
+    # =========================================================
+
+    total_devices = len(
+        devices
+    )
+
+    successful_devices = 0
+
+    failed_devices = 0
 
     # =========================================================
     # RECORRER DISPOSITIVOS
     # =========================================================
 
     for index, device in enumerate(
-        ANDROID_DEVICES
+        devices
     ):
 
         device_name = device[
@@ -396,7 +581,7 @@ def run_tests_on_devices():
         )
 
         # =====================================================
-        # LIMPIAR RESULTADOS TEMPORALES
+        # LIMPIAR RESULTADO TEMPORAL
         # =====================================================
 
         if os.path.exists(
@@ -408,12 +593,17 @@ def run_tests_on_devices():
             )
 
         # =====================================================
-        # INFORMACIÓN DEL DISPOSITIVO
+        # INFORMACIÓN
         # =====================================================
 
         print("\n")
         print("=" * 60)
-        print("📱 EJECUTANDO TEST EN LAMBDATEST")
+
+        print(
+            f"📱 EJECUTANDO "
+            f"{execution.upper()}"
+        )
+
         print("=" * 60)
 
         print(
@@ -421,7 +611,7 @@ def run_tests_on_devices():
         )
 
         print(
-            f"Android: {platform_version}"
+            f"{platform}: {platform_version}"
         )
 
         print(
@@ -440,8 +630,20 @@ def run_tests_on_devices():
 
         environment = os.environ.copy()
 
+        # -----------------------------------------------------
+        # PROVIDER
+        # -----------------------------------------------------
+
         environment[
-            "LT_DEVICE_INDEX"
+            "EXECUTION_PLATFORM"
+        ] = execution
+
+        # -----------------------------------------------------
+        # DEVICE INDEX
+        # -----------------------------------------------------
+
+        environment[
+            device_index_variable
         ] = str(index)
 
         # =====================================================
@@ -449,20 +651,25 @@ def run_tests_on_devices():
         # =====================================================
 
         result = subprocess.run(
+
             [
                 "behave",
+
                 "-t",
                 "@smoke",
+
                 "-f",
                 "allure_behave.formatter:AllureFormatter",
+
                 "-o",
                 device_results
             ],
+
             env=environment
         )
 
         # =====================================================
-        # ACTUALIZAR INFORMACIÓN ALLURE
+        # ACTUALIZAR ALLURE
         # =====================================================
 
         add_device_to_allure_results(
@@ -471,15 +678,15 @@ def run_tests_on_devices():
 
             device_name=device_name,
 
-            platform="Android",
+            platform=platform,
 
             platform_version=platform_version,
 
-            execution="LambdaTest"
+            execution=execution
         )
 
         # =====================================================
-        # COPIAR RESULTADOS AL DIRECTORIO FINAL
+        # MERGE
         # =====================================================
 
         merge_allure_results(
@@ -487,7 +694,7 @@ def run_tests_on_devices():
         )
 
         # =====================================================
-        # ELIMINAR DIRECTORIO TEMPORAL
+        # ELIMINAR TEMPORAL
         # =====================================================
 
         if os.path.exists(
@@ -499,10 +706,12 @@ def run_tests_on_devices():
             )
 
         # =====================================================
-        # RESULTADO DE LA EJECUCIÓN
+        # RESULTADO
         # =====================================================
 
         if result.returncode == 0:
+
+            successful_devices += 1
 
             print("\n")
             print(
@@ -516,6 +725,8 @@ def run_tests_on_devices():
 
         else:
 
+            failed_devices += 1
+
             print("\n")
             print(
                 "❌ TEST FALLÓ"
@@ -526,6 +737,47 @@ def run_tests_on_devices():
                 f"{device_name}"
             )
 
+    # =========================================================
+    # RESUMEN
+    # =========================================================
+
+    print("\n")
+    print("=" * 60)
+    print("📊 RESUMEN DE EJECUCIÓN")
+    print("=" * 60)
+
+    print(
+        f"Provider: {execution}"
+    )
+
+    print(
+        f"Platform: {platform}"
+    )
+
+    print(
+        f"Total dispositivos: {total_devices}"
+    )
+
+    print(
+        f"✅ Exitosos: {successful_devices}"
+    )
+
+    print(
+        f"❌ Fallidos: {failed_devices}"
+    )
+
+    print("=" * 60)
+
+    # =========================================================
+    # RETURN CODE
+    # =========================================================
+
+    if failed_devices > 0:
+
+        return 1
+
+    return 0
+
 
 # =============================================================
 # MAIN
@@ -533,4 +785,10 @@ def run_tests_on_devices():
 
 if __name__ == "__main__":
 
-    run_tests_on_devices()
+    exit_code = (
+        run_tests_on_devices()
+    )
+
+    raise SystemExit(
+        exit_code
+    )

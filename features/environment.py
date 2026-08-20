@@ -8,12 +8,26 @@ from api.pokemon_api import PokemonApi
 from config.config import (
     EXECUTION_PLATFORM,
     PLATFORM_NAME,
-    LT_DEVICE_INDEX
+
+    # LambdaTest
+    LT_DEVICE_INDEX,
+
+    # BrowserStack
+    BS_DEVICE_INDEX
 )
 
 from config.devices import (
-    ANDROID_DEVICES,
-    IOS_DEVICES
+    # LambdaTest
+    LAMBDATEST_ANDROID_DEVICES,
+    LAMBDATEST_IOS_DEVICES,
+
+    # BrowserStack
+    BROWSERSTACK_ANDROID_DEVICES,
+    BROWSERSTACK_IOS_DEVICES
+)
+
+from utils.browserstack_local import (
+    BrowserStackLocalManager
 )
 
 import allure
@@ -29,21 +43,21 @@ def safe_allure_attach(
     name,
     attachment_type=allure.attachment_type.TEXT
 ):
-    """
-    Adjunta información a Allure evitando errores cuando
-    el valor recibido sea None.
-    """
 
     if body is None:
+
         body = ""
 
-    # ---------------------------------------------------------
+    # =========================================================
     # JSON
-    # ---------------------------------------------------------
+    # =========================================================
 
     if attachment_type == allure.attachment_type.JSON:
 
-        if isinstance(body, (dict, list)):
+        if isinstance(
+            body,
+            (dict, list)
+        ):
 
             body = json.dumps(
                 body,
@@ -56,11 +70,14 @@ def safe_allure_attach(
 
             body = str(body)
 
-    # ---------------------------------------------------------
+    # =========================================================
     # TEXT
-    # ---------------------------------------------------------
+    # =========================================================
 
-    elif not isinstance(body, (bytes, bytearray)):
+    elif not isinstance(
+        body,
+        (bytes, bytearray)
+    ):
 
         body = str(body)
 
@@ -72,28 +89,98 @@ def safe_allure_attach(
 
 
 # =============================================================
+# OBTENER DISPOSITIVOS
+# =============================================================
+
+def get_devices():
+
+    execution = (
+        EXECUTION_PLATFORM.lower()
+    )
+
+    platform = (
+        PLATFORM_NAME.lower()
+    )
+
+    # =========================================================
+    # LAMBDATEST
+    # =========================================================
+
+    if execution == "lambdatest":
+
+        if platform == "android":
+
+            return LAMBDATEST_ANDROID_DEVICES
+
+        elif platform == "ios":
+
+            return LAMBDATEST_IOS_DEVICES
+
+    # =========================================================
+    # BROWSERSTACK
+    # =========================================================
+
+    elif execution == "browserstack":
+
+        if platform == "android":
+
+            return BROWSERSTACK_ANDROID_DEVICES
+
+        elif platform == "ios":
+
+            return BROWSERSTACK_IOS_DEVICES
+
+    return []
+
+
+# =============================================================
+# OBTENER DEVICE INDEX
+# =============================================================
+
+def get_device_index():
+
+    if EXECUTION_PLATFORM == "lambdatest":
+
+        return LT_DEVICE_INDEX
+
+    if EXECUTION_PLATFORM == "browserstack":
+
+        return BS_DEVICE_INDEX
+
+    return 0
+
+
+# =============================================================
 # ALLURE - INFORMACIÓN DEL DISPOSITIVO
 # =============================================================
 
-def add_device_information_to_allure(context):
+def add_device_information_to_allure(
+    context
+):
 
-    platform = PLATFORM_NAME.lower()
+    execution = (
+        EXECUTION_PLATFORM.lower()
+    )
+
+    platform = (
+        PLATFORM_NAME.lower()
+    )
 
     # =========================================================
-    # EJECUCIÓN LOCAL
+    # LOCAL
     # =========================================================
 
-    if EXECUTION_PLATFORM == "local":
+    if execution == "local":
+
+        device_name = getattr(
+            context,
+            "device_name",
+            "Local Device"
+        )
 
         allure.dynamic.parameter(
             "Device",
-            "Local - " + str(
-                getattr(
-                    context,
-                    "device_name",
-                    "Local Device"
-                )
-            )
+            f"Local - {device_name}"
         )
 
         allure.dynamic.parameter(
@@ -109,51 +196,103 @@ def add_device_information_to_allure(context):
         return
 
     # =========================================================
-    # OBTENER LISTA DE DISPOSITIVOS
+    # OBTENER DISPOSITIVOS
     # =========================================================
 
-    if platform == "android":
+    devices = get_devices()
 
-        devices = ANDROID_DEVICES
+    if not devices:
 
-    elif platform == "ios":
-
-        devices = IOS_DEVICES
-
-    else:
+        print(
+            "\n⚠️ No hay dispositivos configurados."
+        )
 
         return
+
+    # =========================================================
+    # INDEX
+    # =========================================================
+
+    device_index = get_device_index()
 
     # =========================================================
     # VALIDAR INDEX
     # =========================================================
 
-    if LT_DEVICE_INDEX < 0:
+    if device_index < 0:
+
+        print(
+            "\n⚠️ Device index negativo."
+        )
 
         return
 
-    if LT_DEVICE_INDEX >= len(devices):
+    if device_index >= len(devices):
+
+        print(
+            "\n⚠️ Device index fuera de rango."
+        )
+
+        print(
+            f"Index: {device_index}"
+        )
+
+        print(
+            f"Dispositivos: {len(devices)}"
+        )
 
         return
 
     # =========================================================
-    # DISPOSITIVO ACTUAL
+    # DISPOSITIVO
     # =========================================================
 
     device = devices[
-        LT_DEVICE_INDEX
+        device_index
     ]
 
-    device_name = device[
-        "name"
-    ]
+    device_name = device.get(
+        "name",
+        "Unknown Device"
+    )
 
-    platform_version = device[
-        "platform_version"
-    ]
+    platform_version = device.get(
+        "platform_version",
+        "Unknown Version"
+    )
 
     # =========================================================
-    # ALLURE PARAMETERS
+    # LOG
+    # =========================================================
+
+    print("\n=================================")
+    print("📱 DEVICE INFORMATION")
+    print("=================================")
+
+    print(
+        f"Provider: {EXECUTION_PLATFORM}"
+    )
+
+    print(
+        f"Device: {device_name}"
+    )
+
+    print(
+        f"Platform: {PLATFORM_NAME}"
+    )
+
+    print(
+        f"Version: {platform_version}"
+    )
+
+    print(
+        f"Index: {device_index}"
+    )
+
+    print("=================================\n")
+
+    # =========================================================
+    # ALLURE
     # =========================================================
 
     allure.dynamic.parameter(
@@ -178,14 +317,86 @@ def add_device_information_to_allure(context):
 
 
 # =============================================================
+# BEFORE ALL
+# =============================================================
+
+def before_all(context):
+
+    print("\n=================================")
+    print("🚀 BEFORE ALL")
+    print("=================================")
+
+    context.browserstack_local = None
+
+    # =========================================================
+    # BROWSERSTACK LOCAL
+    # =========================================================
+
+    if (
+        EXECUTION_PLATFORM.lower()
+        == "browserstack"
+    ):
+
+        print(
+            "\n🔐 PREPARANDO "
+            "BROWSERSTACK LOCAL..."
+        )
+
+        context.browserstack_local = (
+            BrowserStackLocalManager()
+        )
+
+        context.browserstack_local.start()
+
+        print(
+            "✅ BROWSERSTACK LOCAL LISTO"
+        )
+
+
+# =============================================================
+# AFTER ALL
+# =============================================================
+
+def after_all(context):
+
+    print("\n=================================")
+    print("🏁 AFTER ALL")
+    print("=================================")
+
+    # =========================================================
+    # CERRAR BROWSERSTACK LOCAL
+    # =========================================================
+
+    if (
+        hasattr(
+            context,
+            "browserstack_local"
+        )
+        and context.browserstack_local
+    ):
+
+        context.browserstack_local.stop()
+
+
+# =============================================================
 # BEFORE SCENARIO
 # =============================================================
 
-def before_scenario(context, scenario):
+def before_scenario(
+    context,
+    scenario
+):
 
     print("\n==============================")
-    print("BEFORE SCENARIO EJECUTADO")
-    print("SCENARIO:", scenario.name)
+    print(
+        "BEFORE SCENARIO EJECUTADO"
+    )
+
+    print(
+        "SCENARIO:",
+        scenario.name
+    )
+
     print("==============================")
 
     # =========================================================
@@ -194,32 +405,45 @@ def before_scenario(context, scenario):
 
     if "database" in scenario.effective_tags:
 
-        print("\n🗄️ CONECTANDO A BASE DE DATOS...")
+        print(
+            "\n🗄️ CONECTANDO A BASE DE DATOS..."
+        )
 
         try:
 
             # -------------------------------------------------
-            # CREAR CONEXIÓN
+            # CONEXIÓN
             # -------------------------------------------------
 
-            context.db = DatabaseConnection()
+            context.db = (
+                DatabaseConnection()
+            )
 
             context.db.connect()
 
             # -------------------------------------------------
-            # CREAR REPOSITORIES
+            # USER REPOSITORY
             # -------------------------------------------------
 
-            context.user_repository = UserRepository(
-                context.db
+            context.user_repository = (
+                UserRepository(
+                    context.db
+                )
             )
 
-            context.account_repository = AccountRepository(
-                context.db
+            # -------------------------------------------------
+            # ACCOUNT REPOSITORY
+            # -------------------------------------------------
+
+            context.account_repository = (
+                AccountRepository(
+                    context.db
+                )
             )
 
             print(
-                "✅ CONEXIÓN A BASE DE DATOS EXITOSA"
+                "✅ CONEXIÓN A BASE DE DATOS "
+                "EXITOSA"
             )
 
         except Exception as e:
@@ -239,24 +463,22 @@ def before_scenario(context, scenario):
 
     if "api" in scenario.effective_tags:
 
-        print("\n🌐 CONFIGURANDO API...")
+        print(
+            "\n🌐 CONFIGURANDO API..."
+        )
 
         try:
 
-            # -------------------------------------------------
-            # API CLIENT
-            # -------------------------------------------------
-
-            context.api_client = ApiClient(
-                "https://pokeapi.co/api/v2"
+            context.api_client = (
+                ApiClient(
+                    "https://pokeapi.co/api/v2"
+                )
             )
 
-            # -------------------------------------------------
-            # POKEMON API
-            # -------------------------------------------------
-
-            context.pokemon_api = PokemonApi(
-                context.api_client
+            context.pokemon_api = (
+                PokemonApi(
+                    context.api_client
+                )
             )
 
             print(
@@ -278,53 +500,60 @@ def before_scenario(context, scenario):
 # BEFORE STEP
 # =============================================================
 
-def before_step(context, step):
+def before_step(
+    context,
+    step
+):
 
     print("\n--------------------------------")
     print("BEFORE STEP")
-    print("STEP:", step.name)
+
+    print(
+        "STEP:",
+        step.name
+    )
+
     print("--------------------------------")
 
     # =========================================================
-    # LIMPIAR EVIDENCIA DE DATABASE
-    # =========================================================
-    #
-    # IMPORTANTE:
-    #
-    # Si el step anterior hizo una consulta SQL, no queremos
-    # que el siguiente step crea que también hizo una consulta.
+    # LIMPIAR DATABASE EVIDENCE
     # =========================================================
 
-    if hasattr(
-        context,
-        "db"
-    ) and context.db:
+    if (
+        hasattr(
+            context,
+            "db"
+        )
+        and context.db
+    ):
 
         context.db.last_query = None
+
         context.db.last_parameters = None
+
         context.db.last_result = None
 
     # =========================================================
-    # LIMPIAR EVIDENCIA API
-    # =========================================================
-    #
-    # De la misma manera limpiamos la información de la
-    # última llamada API.
+    # LIMPIAR API EVIDENCE
     # =========================================================
 
-    if hasattr(
-        context,
-        "api_client"
-    ) and context.api_client:
+    if (
+        hasattr(
+            context,
+            "api_client"
+        )
+        and context.api_client
+    ):
 
         context.api_client.last_method = None
-        context.api_client.last_endpoint = None
-        context.api_client.last_parameters = None
-        context.api_client.last_status_code = None
-        context.api_client.last_response = None
 
-        # Estos atributos pueden existir si posteriormente
-        # los agregamos al ApiClient.
+        context.api_client.last_endpoint = None
+
+        context.api_client.last_parameters = None
+
+        context.api_client.last_status_code = None
+
+        context.api_client.last_response = None
 
         if hasattr(
             context.api_client,
@@ -341,7 +570,7 @@ def before_step(context, step):
             context.api_client.last_body = None
 
     # =========================================================
-    # ALLURE - DEVICE INFORMATION
+    # ALLURE DEVICE INFORMATION
     # =========================================================
 
     if not hasattr(
@@ -360,24 +589,28 @@ def before_step(context, step):
 # AFTER STEP
 # =============================================================
 
-def after_step(context, step):
+def after_step(
+    context,
+    step
+):
 
     print("\n--------------------------------")
     print("AFTER STEP")
-    print("STEP:", step.name)
-    print("STATUS:", step.status)
+
+    print(
+        "STEP:",
+        step.name
+    )
+
+    print(
+        "STATUS:",
+        step.status
+    )
+
     print("--------------------------------")
 
     # =========================================================
-    # DETECTAR DATABASE
-    # =========================================================
-    #
-    # NO necesitamos:
-    #
-    # context.step_type = "database"
-    #
-    # Si last_query tiene información significa que este step
-    # ejecutó una operación SQL.
+    # DATABASE
     # =========================================================
 
     has_db_evidence = (
@@ -390,11 +623,7 @@ def after_step(context, step):
     )
 
     # =========================================================
-    # DETECTAR API
-    # =========================================================
-    #
-    # Si last_method tiene información significa que este step
-    # realizó una llamada API.
+    # API
     # =========================================================
 
     has_api_evidence = (
@@ -463,7 +692,8 @@ def after_step(context, step):
         )
 
         print(
-            "✅ SQL EVIDENCE ADJUNTADA A ALLURE"
+            "✅ SQL EVIDENCE "
+            "ADJUNTADA A ALLURE"
         )
 
     # =========================================================
@@ -476,7 +706,9 @@ def after_step(context, step):
             "\n🌐 GENERANDO EVIDENCIA API..."
         )
 
-        api_client = context.api_client
+        api_client = (
+            context.api_client
+        )
 
         # -----------------------------------------------------
         # METHOD
@@ -564,7 +796,9 @@ def after_step(context, step):
         # RESPONSE
         # -----------------------------------------------------
 
-        response = api_client.last_response
+        response = (
+            api_client.last_response
+        )
 
         if isinstance(
             response,
@@ -590,7 +824,8 @@ def after_step(context, step):
             )
 
         print(
-            "✅ API EVIDENCE ADJUNTADA A ALLURE"
+            "✅ API EVIDENCE "
+            "ADJUNTADA A ALLURE"
         )
 
     # =========================================================
@@ -602,7 +837,9 @@ def after_step(context, step):
         "assert_evidence"
     ):
 
-        evidence = context.assert_evidence
+        evidence = (
+            context.assert_evidence
+        )
 
         # -----------------------------------------------------
         # DESCRIPTION
@@ -657,18 +894,7 @@ def after_step(context, step):
         del context.assert_evidence
 
     # =========================================================
-    # APPIUM SCREENSHOT
-    # =========================================================
-    #
-    # REGLA:
-    #
-    # Database → SQL Evidence → NO SCREENSHOT
-    #
-    # API      → API Evidence → NO SCREENSHOT
-    #
-    # Mobile   → Screenshot
-    #
-    # No importa en qué archivo esté definido el step.
+    # SCREENSHOT
     # =========================================================
 
     is_non_mobile_step = (
@@ -740,12 +966,26 @@ def after_step(context, step):
 # AFTER SCENARIO
 # =============================================================
 
-def after_scenario(context, scenario):
+def after_scenario(
+    context,
+    scenario
+):
 
     print("\n==============================")
-    print("AFTER SCENARIO EJECUTADO")
-    print("SCENARIO:", scenario.name)
-    print("STATUS:", scenario.status)
+    print(
+        "AFTER SCENARIO EJECUTADO"
+    )
+
+    print(
+        "SCENARIO:",
+        scenario.name
+    )
+
+    print(
+        "STATUS:",
+        scenario.status
+    )
+
     print("==============================")
 
     # =========================================================

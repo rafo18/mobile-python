@@ -1,6 +1,6 @@
 # 📱 Mobile Automation Framework - Python
 
-Framework de automatización de pruebas desarrollado en **Python**, utilizando **Behave, Appium, Requests, Oracle Database, LambdaTest y Allure Reports**.
+Framework de automatización de pruebas desarrollado en **Python**, utilizando **Behave, Appium, Requests, Oracle Database, LambdaTest, BrowserStack y Allure Reports**.
 
 El framework permite automatizar y validar diferentes capas de una aplicación:
 
@@ -9,7 +9,9 @@ El framework permite automatizar y validar diferentes capas de una aplicación:
 - 🗄️ Automatización de Base de Datos Oracle
 - 🔗 Pruebas de integración Mobile + API + Database
 - ☁️ Ejecución en dispositivos reales mediante LambdaTest
-- 📱 Ejecución en múltiples dispositivos
+- ☁️ Ejecución en dispositivos reales mediante BrowserStack
+- 🔐 BrowserStack Local para aplicaciones/servicios accesibles únicamente desde una red privada
+- 📱 Ejecución multi-device
 - 🥒 BDD utilizando Gherkin
 - 📊 Reportes con Allure
 - 📸 Evidencia automática mediante screenshots
@@ -28,7 +30,9 @@ Soporta:
 - Android
 - iOS
 - Ejecución local
-- Ejecución en LambdaTest
+- LambdaTest
+- BrowserStack
+- BrowserStack Local
 - Emuladores
 - Dispositivos reales
 - Ejecución en múltiples dispositivos
@@ -37,7 +41,238 @@ Soporta:
 
 ---
 
-## 🌐 API Automation
+## ☁️ Proveedores de ejecución Mobile
+
+El framework utiliza un único `driver_factory.py` para seleccionar el proveedor mediante `EXECUTION_PLATFORM`.
+
+```text
+                    Driver Factory
+                          │
+          ┌───────────────┼───────────────┐
+          │               │               │
+        LOCAL         LAMBDATEST       BROWSERSTACK
+          │               │               │
+       Appium         Real Device      Real Device
+                                          │
+                                          ▼
+                                  BrowserStack Local
+                                          │
+                                          ▼
+                                   Red corporativa
+```
+
+### Local
+
+```env
+EXECUTION_PLATFORM=local
+PLATFORM_NAME=Android
+```
+
+### LambdaTest
+
+```env
+EXECUTION_PLATFORM=lambdatest
+PLATFORM_NAME=Android
+```
+
+### BrowserStack
+
+```env
+EXECUTION_PLATFORM=browserstack
+PLATFORM_NAME=Android
+```
+
+---
+
+# 🌐 BrowserStack
+
+El framework permite ejecutar aplicaciones nativas mediante Appium en BrowserStack.
+
+Configuración básica:
+
+```env
+EXECUTION_PLATFORM=browserstack
+PLATFORM_NAME=Android
+
+BS_USERNAME=
+BS_ACCESS_KEY=
+BS_APP=bs://YOUR_APP_ID
+BS_DEVICE_INDEX=0
+```
+
+La aplicación debe estar subida a BrowserStack App Automate y utilizar el identificador `bs://...` proporcionado por BrowserStack.
+
+Las credenciales deben mantenerse únicamente en `.env`.
+
+---
+
+# 🔐 BrowserStack Local
+
+BrowserStack Local permite que los dispositivos remotos de BrowserStack accedan a aplicaciones, APIs y servicios disponibles únicamente desde una red privada, VPN o red corporativa.
+
+Configuración:
+
+```env
+BS_LOCAL=true
+BS_LOCAL_IDENTIFIER=mobile-automation-local
+```
+
+El framework utiliza el paquete `browserstack-local` para iniciar y detener el túnel automáticamente durante la ejecución.
+
+Flujo:
+
+```text
+Behave
+   ↓
+before_all()
+   ↓
+BrowserStack Local START
+   ↓
+BrowserStack Device
+   ↓
+VPN / Red corporativa
+   ↓
+API / Backend interno
+   ↓
+after_all()
+   ↓
+BrowserStack Local STOP
+```
+
+### Instalación
+
+```bash
+pip install browserstack-local
+```
+
+Actualizar dependencias después de instalar una nueva librería:
+
+```bash
+pip freeze > requirements.txt
+```
+
+---
+
+# 📱 Configuración de dispositivos
+
+Los dispositivos de cada proveedor se mantienen separados en:
+
+```text
+config/devices.py
+```
+
+Ejemplo:
+
+```python
+LAMBDATEST_ANDROID_DEVICES = [
+    {
+        "name": "Galaxy S26",
+        "platform_version": "16"
+    },
+    {
+        "name": "Galaxy S24",
+        "platform_version": "14"
+    }
+]
+
+BROWSERSTACK_ANDROID_DEVICES = [
+    {
+        "name": "Samsung Galaxy S23 Ultra",
+        "platform_version": "13.0"
+    }
+]
+```
+
+BrowserStack debe utilizar únicamente nombres/versiones disponibles para la cuenta.
+
+LambdaTest utiliza:
+
+```env
+LT_DEVICE_INDEX=0
+```
+
+BrowserStack utiliza:
+
+```env
+BS_DEVICE_INDEX=0
+```
+
+---
+
+# 📱 Multi-device
+
+El proyecto incluye:
+
+```text
+run_devices.py
+```
+
+El runner detecta automáticamente el proveedor mediante:
+
+```env
+EXECUTION_PLATFORM=browserstack
+```
+
+o:
+
+```env
+EXECUTION_PLATFORM=lambdatest
+```
+
+También permite recibir el tag desde la terminal.
+
+### Smoke
+
+```bash
+python run_devices.py @smoke
+```
+
+### Login
+
+```bash
+python run_devices.py @login
+```
+
+### API
+
+```bash
+python run_devices.py @api
+```
+
+### Database
+
+```bash
+python run_devices.py @database
+```
+
+### Integration
+
+```bash
+python run_devices.py @integration
+```
+
+Si no se especifica un tag:
+
+```bash
+python run_devices.py
+```
+
+se ejecuta `@smoke` por defecto.
+
+El runner:
+
+1. Limpia `allure-results`.
+2. Selecciona la lista de dispositivos del proveedor.
+3. Define automáticamente `LT_DEVICE_INDEX` o `BS_DEVICE_INDEX`.
+4. Ejecuta Behave para cada dispositivo.
+5. Separa los resultados temporales.
+6. Agrega Device, Platform, Version, Execution y Tag a Allure.
+7. Genera un `historyId` independiente por proveedor y dispositivo.
+8. Consolida los resultados en un único `allure-results`.
+
+---
+
+# 🌐 API Automation
 
 Automatización de APIs REST utilizando `Requests`.
 
@@ -57,20 +292,110 @@ La arquitectura permite agregar posteriormente:
 - Headers comunes
 - Manejo de tokens
 
-Las llamadas API generan automáticamente evidencia para Allure:
+Las llamadas API pueden generar evidencia para Allure:
 
-- API
-- HTTP Method
-- Endpoint
-- Parameters
-- Headers
-- Body
-- Status Code
-- Response
+```text
+API Method
+API Endpoint
+API Parameters
+API Headers
+API Body
+API Status Code
+API Response
+```
 
 ---
 
-## 🗄️ Database Automation
+# 🌍 Múltiples APIs / Dominios
+
+El framework permite trabajar con diferentes dominios y reutilizar el mismo `ApiClient`.
+
+Ejemplo:
+
+```env
+POKEMON_API_URL=https://pokeapi.co/api/v2
+TEST_API_URL=https://jsonplaceholder.typicode.com
+```
+
+Para nuevos dominios se pueden agregar variables en `.env` y configurarlas desde:
+
+```text
+config/api_config.py
+```
+
+Las operaciones específicas de negocio se implementan en clases dentro de:
+
+```text
+api/
+```
+
+Ejemplo:
+
+```text
+api/
+├── auth_api.py
+├── transfer_api.py
+├── qr_api.py
+└── pokemon_api.py
+```
+
+Cada clase reutiliza el mismo cliente HTTP.
+
+---
+
+# 📡 Ejemplo GET
+
+```python
+response = context.pokemon_api.get_pokemon(
+    "pikachu"
+)
+```
+
+# 📡 Ejemplo POST
+
+```python
+body = {
+    "title": "Mobile Automation",
+    "body": "Prueba automatizada con Python",
+    "userId": 1
+}
+
+headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+}
+
+response = context.test_api.create_post(
+    body=body,
+    headers=headers
+)
+```
+
+# 📡 Ejemplo PUT
+
+```python
+body = {
+    "name": "Updated User",
+    "email": "user@test.com"
+}
+
+response = context.test_api.update_user(
+    user_id=1,
+    body=body
+)
+```
+
+# 📡 Ejemplo DELETE
+
+```python
+response = context.test_api.delete_user(
+    user_id=1
+)
+```
+
+---
+
+# 🗄️ Database Automation
 
 Integración con Oracle Database utilizando `oracledb`.
 
@@ -84,567 +409,21 @@ Permite ejecutar:
 La arquitectura utiliza Repository Pattern:
 
 ```text
-Test Steps
-    ↓
+Test Step
+   ↓
 Repository
-    ↓
-Database Connection
-    ↓
-Oracle Database
-```
-
-También se genera evidencia de:
-
-- SQL Query
-- SQL Parameters
-- SQL Result
-
----
-
-## 🔗 Integration Testing
-
-El framework permite combinar diferentes capas dentro de un mismo escenario.
-
-Ejemplo:
-
-```text
-Mobile
    ↓
-API
-   ↓
-Database
-```
-
-Esto permite validar flujos completos de negocio.
-
----
-
-# 🛠️ Tecnologías
-
-| Tecnología | Uso |
-|---|---|
-| Python | Lenguaje principal |
-| Behave | BDD / Gherkin |
-| Appium | Automatización Mobile |
-| UiAutomator2 | Automatización Android |
-| XCUITest | Automatización iOS |
-| LambdaTest | Dispositivos reales en la nube |
-| Requests | Automatización API |
-| OracleDB | Automatización de Base de Datos |
-| python-dotenv | Variables de entorno |
-| Allure | Reportes |
-| Git | Control de versiones |
-
----
-
-# 📁 Estructura del proyecto
-
-```text
-proyecto_python/
-│
-├── api/
-│   ├── api_client.py
-│   ├── base_api.py
-│   ├── endpoints.py
-│   ├── pokemon_api.py
-│   └── test_api.py
-│
-├── config/
-│   ├── api_config.py
-│   ├── config.py
-│   └── devices.py
-│
-├── database/
-│   ├── connection.py
-│   ├── queries.py
-│   │
-│   └── repositories/
-│       ├── user_repository.py
-│       └── account_repository.py
-│
-├── drivers/
-│   └── driver_factory.py
-│
-├── features/
-│   ├── environment.py
-│   │
-│   ├── steps/
-│   │   ├── api_steps.py
-│   │   ├── database_steps.py
-│   │   └── login_steps.py
-│   │
-│   ├── api.feature
-│   ├── database.feature
-│   ├── integration.feature
-│   └── login.feature
-│
-├── pages/
-│   ├── base_page.py
-│   └── login_page.py
-│
-├── utils/
-│   └── assertions.py
-│
-├── .env
-├── .env.example
-├── .gitignore
-├── README.md
-├── requirements.txt
-├── run_devices.py
-├── run_test.sh
-└── test_appium.py
-```
-
----
-
-# 🏗️ Arquitectura
-
-El framework está dividido en diferentes capas para mantener una correcta separación de responsabilidades.
-
-```text
-                         Behave
-                           │
-                           ▼
-                     Gherkin Tests
-                           │
-             ┌─────────────┼─────────────┐
-             │             │             │
-             ▼             ▼             ▼
-          Mobile          API            DB
-             │             │             │
-             ▼             ▼             ▼
-          Appium        ApiClient      Repository
-             │             │             │
-             ▼             ▼             ▼
-        Android/iOS     REST APIs      Oracle
-             │             │             │
-             └─────────────┼─────────────┘
-                           ▼
-                         Allure
-```
-
----
-
-# 📱 Arquitectura Mobile
-
-La creación del driver está centralizada en:
-
-```text
-drivers/driver_factory.py
-```
-
-El Driver Factory permite seleccionar automáticamente el entorno de ejecución.
-
-```text
-                    Driver Factory
-                         │
-              ┌──────────┴──────────┐
-              │                     │
-            LOCAL               LAMBDATEST
-              │                     │
-         ┌────┴────┐          ┌─────┴─────┐
-         │         │          │           │
-      Android     iOS      Android       iOS
-```
-
-La plataforma se determina mediante:
-
-```env
-EXECUTION_PLATFORM=local
-PLATFORM_NAME=Android
-```
-
-o:
-
-```env
-EXECUTION_PLATFORM=lambdatest
-PLATFORM_NAME=Android
-```
-
----
-
-# ☁️ LambdaTest
-
-El framework permite ejecutar pruebas en dispositivos reales mediante LambdaTest.
-
-Configuración:
-
-```env
-EXECUTION_PLATFORM=lambdatest
-
-PLATFORM_NAME=Android
-
-LT_USERNAME=
-
-LT_ACCESS_KEY=
-
-LT_APP=
-
-LT_DEVICE_INDEX=0
-```
-
-Las credenciales deben mantenerse únicamente en `.env`.
-
----
-
-# 📱 Configuración de dispositivos
-
-Los dispositivos disponibles se mantienen en:
-
-```text
-config/devices.py
-```
-
-Ejemplo:
-
-```python
-ANDROID_DEVICES = [
-
-    {
-        "name": "Galaxy S23",
-        "platform_version": "14"
-    },
-
-    {
-        "name": "Pixel 10 Pro",
-        "platform_version": "16"
-    }
-]
-```
-
-Para iOS:
-
-```python
-IOS_DEVICES = [
-
-    {
-        "name": "iPhone 15",
-        "platform_version": "17"
-    }
-]
-```
-
-El dispositivo se selecciona utilizando:
-
-```env
-LT_DEVICE_INDEX=0
-```
-
----
-
-# 📱 Ejecución en múltiples dispositivos
-
-El proyecto incluye:
-
-```text
-run_devices.py
-```
-
-Este script permite ejecutar los escenarios configurados sobre diferentes dispositivos.
-
-Ejecutar:
-
-```bash
-python run_devices.py
-```
-
-El flujo es:
-
-```text
-Device 1
-   ↓
-LambdaTest
-   ↓
-Behave
-   ↓
-Allure Results
-
-Device 2
-   ↓
-LambdaTest
-   ↓
-Behave
-   ↓
-Allure Results
-
-Device 3
-   ↓
-LambdaTest
-   ↓
-Behave
-   ↓
-Allure Results
-```
-
-La información del dispositivo se incorpora al reporte de Allure.
-
----
-
-# 🌐 Arquitectura API
-
-La capa API está organizada de la siguiente manera:
-
-```text
-api/
-│
-├── api_client.py
-├── base_api.py
-├── endpoints.py
-├── pokemon_api.py
-└── test_api.py
-```
-
----
-
-# ApiClient
-
-`api_client.py` contiene la lógica HTTP común.
-
-Es responsable de ejecutar:
-
-```text
-GET
-POST
-PUT
-DELETE
-```
-
-El `ApiClient` centraliza la comunicación HTTP y la evidencia de las llamadas.
-
----
-
-# BaseApi
-
-`base_api.py` proporciona una clase base para las diferentes APIs.
-
-Ejemplo:
-
-```python
-from api.base_api import BaseApi
-
-
-class TransferApi(BaseApi):
-
-    def create_transfer(
-        self,
-        body,
-        headers=None
-    ):
-
-        return self.api_client.post(
-            "/transfers",
-            body=body,
-            headers=headers
-        )
-```
-
-Las clases específicas solamente definen las operaciones de negocio.
-
----
-
-# Endpoints
-
-Los endpoints pueden centralizarse en:
-
-```text
-api/endpoints.py
-```
-
-Ejemplo:
-
-```python
-class Endpoints:
-
-    POKEMON = "/pokemon"
-
-    POSTS = "/posts"
-
-    LOGIN = "/login"
-
-    TRANSFERS = "/transfers"
-
-    QR = "/qr"
-```
-
-Esto permite mantener las rutas organizadas y evitar duplicación.
-
----
-
-# 🌍 Múltiples APIs / Dominios
-
-El framework permite trabajar con diferentes dominios.
-
-Por ejemplo:
-
-```text
-Auth API
-https://auth-api.com
-
-Transfer API
-https://transfer-api.com
-
-QR API
-https://qr-api.com
-```
-
-Las URLs se configuran mediante `.env`.
-
-Ejemplo:
-
-```env
-AUTH_API_URL=
-TRANSFER_API_URL=
-QR_API_URL=
-```
-
-Y se recuperan desde:
-
-```text
-config/api_config.py
-```
-
-Cada dominio puede tener su propia clase:
-
-```text
-api/
-├── auth_api.py
-├── transfer_api.py
-└── qr_api.py
-```
-
-Cada clase reutiliza el mismo `ApiClient`.
-
----
-
-# ⚙️ Configuración de APIs
-
-Archivo:
-
-```text
-config/api_config.py
-```
-
-Ejemplo:
-
-```python
-import os
-
-from dotenv import load_dotenv
-
-
-load_dotenv()
-
-
-POKEMON_API_URL = os.getenv(
-    "POKEMON_API_URL"
-)
-
-TEST_API_URL = os.getenv(
-    "TEST_API_URL"
-)
-
-API_TIMEOUT = int(
-    os.getenv(
-        "API_TIMEOUT",
-        "30"
-    )
-)
-```
-
-Las URLs reales se mantienen en `.env`.
-
----
-
-# 📡 Ejemplo GET
-
-```python
-response = context.pokemon_api.get_pokemon(
-    "pikachu"
-)
-```
-
----
-
-# 📡 Ejemplo POST
-
-```python
-body = {
-
-    "title": "Mobile Automation",
-
-    "body": "Prueba automatizada con Python",
-
-    "userId": 1
-}
-
-
-headers = {
-
-    "Content-Type": "application/json",
-
-    "Accept": "application/json"
-}
-
-
-response = context.test_api.create_post(
-    body=body,
-    headers=headers
-)
-```
-
----
-
-# 📡 Ejemplo PUT
-
-```python
-body = {
-
-    "name": "Updated User",
-
-    "email": "user@test.com"
-}
-
-
-response = context.test_api.update_user(
-    user_id=1,
-    body=body
-)
-```
-
----
-
-# 📡 Ejemplo DELETE
-
-```python
-response = context.test_api.delete_user(
-    user_id=1
-)
-```
-
----
-
-# 🗄️ Arquitectura Database
-
-La capa de Base de Datos utiliza Repository Pattern.
-
-```text
-features/steps
-       ↓
-Repository
-       ↓
 DatabaseConnection
-       ↓
-Oracle
+   ↓
+Oracle Database
 ```
 
 Estructura:
 
 ```text
 database/
-│
 ├── connection.py
 ├── queries.py
-│
 └── repositories/
     ├── user_repository.py
     └── account_repository.py
@@ -652,72 +431,9 @@ database/
 
 ---
 
-# 🔌 DatabaseConnection
+# 📊 Evidencia de Base de Datos
 
-Archivo:
-
-```text
-database/connection.py
-```
-
-Responsabilidades:
-
-- Crear conexión Oracle
-- Ejecutar SELECT
-- Ejecutar INSERT
-- Ejecutar UPDATE
-- Ejecutar DELETE
-- Commit
-- Rollback
-- Cerrar conexión
-- Registrar evidencia
-
----
-
-# 🔎 SELECT
-
-Ejemplo:
-
-```python
-account = (
-    context.account_repository.get_account(
-        id_cuenta
-    )
-)
-```
-
----
-
-# ✏️ UPDATE
-
-Ejemplo:
-
-```python
-context.account_repository.update_account(
-    id_cuenta=id_cuenta,
-    saldo=saldo
-)
-```
-
----
-
-# 🗑️ DELETE
-
-Las operaciones DELETE utilizan el mismo mecanismo de ejecución de operaciones de modificación.
-
-Ejemplo:
-
-```python
-context.user_repository.delete_user(
-    id_usuario
-)
-```
-
----
-
-# 📊 Evidencia Database
-
-Allure puede mostrar:
+`DatabaseConnection` registra automáticamente la última operación para que `environment.py` pueda adjuntarla a Allure.
 
 ```text
 SQL Query
@@ -725,7 +441,45 @@ SQL Parameters
 SQL Result
 ```
 
-Esto permite conocer exactamente qué operación se ejecutó durante el escenario.
+Los steps no necesitan indicar manualmente que son de Base de Datos.
+
+---
+
+# 📊 Evidencia API
+
+La misma lógica se aplica a las llamadas API.
+
+Los steps no necesitan indicar manualmente que son de API.
+
+El framework detecta automáticamente la evidencia generada por `ApiClient`.
+
+---
+
+# 📸 Screenshots y evidencia automática
+
+La regla de evidencia es:
+
+```text
+Mobile Step
+    ↓
+📸 Screenshot
+
+API Step
+    ↓
+🌐 API Evidence
+    ↓
+❌ Screenshot
+
+Database Step
+    ↓
+🗄️ SQL Evidence
+    ↓
+❌ Screenshot
+```
+
+La detección se realiza automáticamente desde `environment.py`.
+
+No es necesario agregar `context.step_type` a los steps.
 
 ---
 
@@ -739,26 +493,21 @@ Ejemplo:
 Feature: Login
 
     @smoke
-    Scenario: Login fallido con credenciales inválidas
+    @login
+    Scenario: Login exitoso con credenciales válidas
 
         Given que el usuario abre la aplicación
-
-        When ingresa el usuario "invalid_user"
-
-        And ingresa la contraseña "invalid_password"
-
+        When ingresa el usuario "standard_user"
+        And ingresa la contraseña "secret_sauce"
         And presiona el botón LOGIN
-
-        Then debería mostrar un mensaje de error
+        Then debería ingresar correctamente a la aplicación
 ```
 
 ---
 
 # 🏷️ Tags
 
-El framework utiliza tags para ejecutar diferentes grupos de pruebas.
-
-Ejemplos:
+Tags principales:
 
 ```text
 @smoke
@@ -766,6 +515,36 @@ Ejemplos:
 @api
 @database
 @integration
+```
+
+Ejecutar todos los escenarios `@smoke`:
+
+```bash
+behave -t @smoke
+```
+
+Ejecutar Login:
+
+```bash
+behave -t @login
+```
+
+Ejecutar API:
+
+```bash
+behave -t @api
+```
+
+Ejecutar Database:
+
+```bash
+behave -t @database
+```
+
+Ejecutar Integration:
+
+```bash
+behave -t @integration
 ```
 
 ---
@@ -784,7 +563,8 @@ Antes de instalar el proyecto debes tener:
 - Android Studio
 - Android SDK
 - Allure
-- Un dispositivo Android/iOS o acceso a LambdaTest
+- Dispositivo/emulador Android o iOS
+- Cuenta de LambdaTest y/o BrowserStack si se requiere ejecución cloud
 
 ---
 
@@ -794,15 +574,11 @@ Antes de instalar el proyecto debes tener:
 python --version
 ```
 
----
-
 ## Verificar Node.js
 
 ```bash
 node --version
 ```
-
----
 
 ## Verificar npm
 
@@ -810,23 +586,17 @@ node --version
 npm --version
 ```
 
----
-
 ## Verificar Java
 
 ```bash
 java -version
 ```
 
----
-
 ## Verificar Appium
 
 ```bash
 appium --version
 ```
-
----
 
 ## Verificar Allure
 
@@ -842,19 +612,10 @@ allure --version
 
 ```bash
 git clone <REPOSITORY_URL>
-```
-
-Ingresar al proyecto:
-
-```bash
 cd proyecto_python
 ```
 
----
-
-# 2. Crear entorno virtual
-
-Windows:
+## 2. Crear entorno virtual
 
 ```bash
 python -m venv venv
@@ -866,65 +627,44 @@ Activar en Git Bash:
 source venv/Scripts/activate
 ```
 
-Activar en CMD:
+CMD:
 
 ```cmd
 venv\Scripts\activate
 ```
 
-Activar en PowerShell:
+PowerShell:
 
 ```powershell
 venv\Scripts\Activate.ps1
 ```
 
-Una vez activado debería aparecer:
-
-```text
-(venv)
-```
-
-al inicio de la terminal.
-
----
-
-# 3. Instalar dependencias
+## 3. Instalar dependencias
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Verificar:
+Si agregas una nueva librería:
 
 ```bash
-pip list
+pip install browserstack-local
+pip freeze > requirements.txt
 ```
 
 ---
 
-# ⚙️ Configuración
+# ⚙️ Configuración `.env`
 
-## 4. Crear archivo `.env`
-
-El proyecto incluye:
-
-```text
-.env.example
-```
-
-Crear una copia:
+Crear una copia de `.env.example`:
 
 ```bash
 cp .env.example .env
 ```
 
-Luego completar las variables necesarias.
+Después completa las credenciales y configuración del ambiente.
 
----
-
-# 📄 Variables de entorno
-
-Ejemplo:
+Ejemplo general:
 
 ```env
 # =========================================================
@@ -932,7 +672,6 @@ Ejemplo:
 # =========================================================
 
 EXECUTION_PLATFORM=local
-
 PLATFORM_NAME=Android
 
 
@@ -941,11 +680,8 @@ PLATFORM_NAME=Android
 # =========================================================
 
 APPIUM_SERVER=http://127.0.0.1:4723
-
 DEVICE_NAME=emulator-5554
-
 APP_PACKAGE=com.swaglabsmobileapp
-
 APP_ACTIVITY=com.swaglabsmobileapp.MainActivity
 
 
@@ -954,12 +690,27 @@ APP_ACTIVITY=com.swaglabsmobileapp.MainActivity
 # =========================================================
 
 LT_USERNAME=
-
 LT_ACCESS_KEY=
-
 LT_APP=
-
 LT_DEVICE_INDEX=0
+
+
+# =========================================================
+# BROWSERSTACK
+# =========================================================
+
+BS_USERNAME=
+BS_ACCESS_KEY=
+BS_APP=bs://YOUR_APP_ID
+BS_DEVICE_INDEX=0
+
+
+# =========================================================
+# BROWSERSTACK LOCAL
+# =========================================================
+
+BS_LOCAL=false
+BS_LOCAL_IDENTIFIER=mobile-automation-local
 
 
 # =========================================================
@@ -967,9 +718,7 @@ LT_DEVICE_INDEX=0
 # =========================================================
 
 POKEMON_API_URL=https://pokeapi.co/api/v2
-
 TEST_API_URL=https://jsonplaceholder.typicode.com
-
 API_TIMEOUT=30
 
 
@@ -978,97 +727,11 @@ API_TIMEOUT=30
 # =========================================================
 
 DB_USER=
-
 DB_PASSWORD=
-
 DB_HOST=
-
 DB_PORT=1521
-
 DB_SERVICE=
 ```
-
----
-
-# 📱 Configuración Mobile Local
-
-Para ejecutar Appium localmente:
-
-```env
-EXECUTION_PLATFORM=local
-
-PLATFORM_NAME=Android
-
-APPIUM_SERVER=http://127.0.0.1:4723
-
-DEVICE_NAME=emulator-5554
-
-APP_PACKAGE=com.swaglabsmobileapp
-
-APP_ACTIVITY=com.swaglabsmobileapp.MainActivity
-```
-
----
-
-# 🔌 Verificar dispositivo Android
-
-```bash
-adb devices
-```
-
-Ejemplo:
-
-```text
-List of devices attached
-emulator-5554    device
-```
-
----
-
-# ▶️ Iniciar Appium
-
-```bash
-appium
-```
-
-Por defecto:
-
-```text
-http://127.0.0.1:4723
-```
-
----
-
-# ☁️ Configuración LambdaTest
-
-Para ejecutar en LambdaTest:
-
-```env
-EXECUTION_PLATFORM=lambdatest
-
-PLATFORM_NAME=Android
-
-LT_USERNAME=
-
-LT_ACCESS_KEY=
-
-LT_APP=
-
-LT_DEVICE_INDEX=0
-```
-
----
-
-# ▶️ Ejecución de pruebas
-
-El framework permite ejecutar las pruebas:
-
-- Localmente mediante Appium
-- En LambdaTest
-- En múltiples dispositivos
-- Por tags
-- Por feature
-- Por escenario específico
 
 ---
 
@@ -1078,15 +741,10 @@ Configurar:
 
 ```env
 EXECUTION_PLATFORM=local
-
 PLATFORM_NAME=Android
-
 APPIUM_SERVER=http://127.0.0.1:4723
-
 DEVICE_NAME=emulator-5554
-
 APP_PACKAGE=com.swaglabsmobileapp
-
 APP_ACTIVITY=com.swaglabsmobileapp.MainActivity
 ```
 
@@ -1105,76 +763,176 @@ adb devices
 Ejecutar Login:
 
 ```bash
-behave -t @login \
--f allure_behave.formatter:AllureFormatter \
--o allure-results
+behave -t @login -f allure_behave.formatter:AllureFormatter -o allure-results
 ```
 
 ---
 
-# ☁️ Ejecución en LambdaTest
+# ☁️ Ejecución LambdaTest
 
 Configurar:
 
 ```env
 EXECUTION_PLATFORM=lambdatest
-
 PLATFORM_NAME=Android
-
-LT_USERNAME=YOUR_USERNAME
-
-LT_ACCESS_KEY=YOUR_ACCESS_KEY
-
-LT_APP=lt://YOUR_APP_ID
-
 LT_DEVICE_INDEX=0
 ```
 
-Luego ejecutar:
+Ejecutar:
 
 ```bash
-behave -t @login \
--f allure_behave.formatter:AllureFormatter \
--o allure-results
+behave -t @login -f allure_behave.formatter:AllureFormatter -o allure-results
 ```
-
-El `driver_factory.py` detectará:
-
-```env
-EXECUTION_PLATFORM=lambdatest
-```
-
-y creará automáticamente el driver remoto de LambdaTest.
 
 ---
 
-# 📱 Ejecutar múltiples dispositivos en LambdaTest
+# ☁️ LambdaTest Multi-device
 
 Configurar:
 
 ```env
 EXECUTION_PLATFORM=lambdatest
-
 PLATFORM_NAME=Android
 ```
 
-Luego ejecutar:
+Ejecutar un tag específico en todos los dispositivos configurados:
+
+```bash
+python run_devices.py @smoke
+```
+
+Otros ejemplos:
+
+```bash
+python run_devices.py @login
+python run_devices.py @api
+python run_devices.py @database
+python run_devices.py @integration
+```
+
+Sin tag se usa `@smoke` por defecto:
 
 ```bash
 python run_devices.py
 ```
 
-El script utiliza los dispositivos configurados en:
+---
 
-```text
-config/devices.py
+# ☁️ Ejecución BrowserStack
+
+Configurar:
+
+```env
+EXECUTION_PLATFORM=browserstack
+PLATFORM_NAME=Android
+
+BS_USERNAME=
+BS_ACCESS_KEY=
+BS_APP=bs://YOUR_APP_ID
+BS_DEVICE_INDEX=0
+
+BS_LOCAL=false
 ```
 
-Cada ejecución se realiza sobre un dispositivo diferente.
+Ejecutar un escenario o tag:
+
+```bash
+behave -t @smoke -f allure_behave.formatter:AllureFormatter -o allure-results
+```
 
 ---
 
-# 🧪 run_test.sh
+# 🔐 BrowserStack Local + red privada
+
+Si la aplicación o backend solo es accesible desde la red corporativa:
+
+```env
+EXECUTION_PLATFORM=browserstack
+PLATFORM_NAME=Android
+
+BS_LOCAL=true
+BS_LOCAL_IDENTIFIER=mobile-automation-local
+```
+
+El framework inicia BrowserStack Local en `before_all()` y lo detiene en `after_all()`.
+
+Para probar un solo escenario:
+
+```bash
+behave features/login.feature:4 --no-capture
+```
+
+Para probar Smoke:
+
+```bash
+behave -t @smoke --no-capture
+```
+
+La sesión BrowserStack utiliza:
+
+```text
+local=true
+localIdentifier=mobile-automation-local
+```
+
+El túnel utiliza el mismo `localIdentifier`.
+
+---
+
+# ☁️ BrowserStack Multi-device
+
+Configurar:
+
+```env
+EXECUTION_PLATFORM=browserstack
+PLATFORM_NAME=Android
+BS_LOCAL=false
+```
+
+o, si se necesita acceso a red privada:
+
+```env
+EXECUTION_PLATFORM=browserstack
+PLATFORM_NAME=Android
+BS_LOCAL=true
+BS_LOCAL_IDENTIFIER=mobile-automation-local
+```
+
+Ejecutar todos los dispositivos configurados:
+
+```bash
+python run_devices.py @smoke
+```
+
+Ejecutar Login:
+
+```bash
+python run_devices.py @login
+```
+
+Ejecutar API:
+
+```bash
+python run_devices.py @api
+```
+
+Ejecutar Database:
+
+```bash
+python run_devices.py @database
+```
+
+Ejecutar Integration:
+
+```bash
+python run_devices.py @integration
+```
+
+El runner selecciona automáticamente `BS_DEVICE_INDEX` para cada dispositivo.
+
+---
+
+# 🧪 `run_test.sh`
 
 El proyecto incluye:
 
@@ -1182,38 +940,9 @@ El proyecto incluye:
 run_test.sh
 ```
 
-Este script permite centralizar la ejecución de las pruebas.
+Este script centraliza la ejecución de la suite.
 
-Ejemplo:
-
-```bash
-#!/bin/bash
-
-echo "================================="
-echo "   MOBILE AUTOMATION FRAMEWORK"
-echo "================================="
-
-echo ""
-echo "Limpiando resultados anteriores..."
-
-rm -rf allure-results allure-report
-
-echo ""
-echo "Ejecutando pruebas..."
-
-behave \
--f allure_behave.formatter:AllureFormatter \
--o allure-results
-
-echo ""
-echo "================================="
-echo "       EJECUCIÓN FINALIZADA"
-echo "================================="
-```
-
----
-
-# ▶️ Dar permisos a run_test.sh
+Dar permisos:
 
 ```bash
 chmod +x run_test.sh
@@ -1225,207 +954,45 @@ Ejecutar:
 ./run_test.sh
 ```
 
----
-
-# 🧪 Ejecutar un tag mediante run_test.sh
-
-Si el script está configurado para recibir un tag:
+Si la versión del script acepta un tag:
 
 ```bash
+./run_test.sh @smoke
 ./run_test.sh @login
-```
-
-Ejemplo API:
-
-```bash
 ./run_test.sh @api
-```
-
-Database:
-
-```bash
 ./run_test.sh @database
-```
-
-Integration:
-
-```bash
 ./run_test.sh @integration
-```
-
----
-
-# 🌐 Ejecutar API
-
-Todos los escenarios API:
-
-```bash
-behave -t @api \
--f allure_behave.formatter:AllureFormatter \
--o allure-results
-```
-
----
-
-## Ejecutar Feature API
-
-```bash
-behave features/api.feature \
--f allure_behave.formatter:AllureFormatter \
--o allure-results
-```
-
----
-
-## Ejecutar escenario API específico
-
-```bash
-behave features/api.feature \
--n "Crear un post mediante API" \
--f allure_behave.formatter:AllureFormatter \
--o allure-results
-```
-
----
-
-# 🗄️ Ejecutar Database
-
-```bash
-behave -t @database \
--f allure_behave.formatter:AllureFormatter \
--o allure-results
-```
-
----
-
-# 🔗 Ejecutar Integration
-
-```bash
-behave -t @integration \
--f allure_behave.formatter:AllureFormatter \
--o allure-results
-```
-
----
-
-# 📱 Ejecutar Mobile
-
-## Login
-
-```bash
-behave -t @login \
--f allure_behave.formatter:AllureFormatter \
--o allure-results
-```
-
----
-
-## Smoke
-
-```bash
-behave -t @smoke \
--f allure_behave.formatter:AllureFormatter \
--o allure-results
-```
-
----
-
-## Feature específico
-
-```bash
-behave features/login.feature \
--f allure_behave.formatter:AllureFormatter \
--o allure-results
-```
-
----
-
-## Escenario específico
-
-```bash
-behave features/login.feature \
--n "Login fallido con credenciales inválidas" \
--f allure_behave.formatter:AllureFormatter \
--o allure-results
-```
-
----
-
-# 🏷️ Ejecución por Tags
-
-## Login
-
-```bash
-behave -t @login
-```
-
-## Smoke
-
-```bash
-behave -t @smoke
-```
-
-## API
-
-```bash
-behave -t @api
-```
-
-## Database
-
-```bash
-behave -t @database
-```
-
-## Integration
-
-```bash
-behave -t @integration
 ```
 
 ---
 
 # 📊 Allure Reports
 
-Los resultados de Allure se almacenan en:
+Los resultados se almacenan en:
 
 ```text
 allure-results/
 ```
 
----
-
-# 🧹 Limpiar resultados anteriores
-
-Antes de una nueva ejecución:
+## Limpiar resultados
 
 ```bash
 rm -rf allure-results allure-report
 ```
 
----
-
-# 📈 Abrir reporte Allure
-
-Después de ejecutar las pruebas:
+## Generar y abrir reporte
 
 ```bash
 allure serve allure-results
 ```
 
-Esto genera y abre automáticamente el reporte en el navegador.
-
----
-
-# 📦 Generar reporte estático
+## Generar reporte estático
 
 ```bash
-allure generate allure-results \
--o allure-report \
---clean
+allure generate allure-results -o allure-report --clean
 ```
 
-Abrir:
+## Abrir reporte estático
 
 ```bash
 allure open allure-report
@@ -1433,156 +1000,53 @@ allure open allure-report
 
 ---
 
-# 🔄 Flujo recomendado de ejecución
+# 🧪 Comandos completos recomendados
 
-## Ejecución local
-
-### 1. Activar entorno virtual
-
-```bash
-source venv/Scripts/activate
-```
-
-### 2. Iniciar Appium
-
-```bash
-appium
-```
-
-### 3. Limpiar resultados
+## Smoke local
 
 ```bash
 rm -rf allure-results allure-report
-```
-
-### 4. Ejecutar pruebas
-
-```bash
-behave -t @login \
--f allure_behave.formatter:AllureFormatter \
--o allure-results
-```
-
-### 5. Abrir Allure
-
-```bash
+behave -t @smoke -f allure_behave.formatter:AllureFormatter -o allure-results
 allure serve allure-results
 ```
 
----
-
-# 🔄 Ejecución LambdaTest
-
-### 1. Configurar `.env`
-
-```env
-EXECUTION_PLATFORM=lambdatest
-PLATFORM_NAME=Android
-LT_DEVICE_INDEX=0
-```
-
-### 2. Limpiar resultados
+## Smoke LambdaTest
 
 ```bash
 rm -rf allure-results allure-report
-```
-
-### 3. Ejecutar pruebas
-
-```bash
-behave -t @login \
--f allure_behave.formatter:AllureFormatter \
--o allure-results
-```
-
-### 4. Abrir Allure
-
-```bash
+behave -t @smoke -f allure_behave.formatter:AllureFormatter -o allure-results
 allure serve allure-results
 ```
 
----
-
-# 🔄 Ejecución LambdaTest Multi-Device
-
-### 1. Configurar:
-
-```env
-EXECUTION_PLATFORM=lambdatest
-PLATFORM_NAME=Android
-```
-
-### 2. Limpiar resultados:
+## Smoke LambdaTest multi-device
 
 ```bash
 rm -rf allure-results allure-report
-```
-
-### 3. Ejecutar:
-
-```bash
-python run_devices.py
-```
-
-### 4. Abrir Allure:
-
-```bash
+python run_devices.py @smoke
 allure serve allure-results
 ```
 
----
-
-# 🌐 Ejecución API completa
+## Smoke BrowserStack
 
 ```bash
 rm -rf allure-results allure-report
-
-behave -t @api \
--f allure_behave.formatter:AllureFormatter \
--o allure-results
-
+behave -t @smoke -f allure_behave.formatter:AllureFormatter -o allure-results
 allure serve allure-results
 ```
 
----
-
-# 🗄️ Ejecución Database completa
+## Smoke BrowserStack multi-device
 
 ```bash
 rm -rf allure-results allure-report
-
-behave -t @database \
--f allure_behave.formatter:AllureFormatter \
--o allure-results
-
+python run_devices.py @smoke
 allure serve allure-results
 ```
 
----
-
-# 🔗 Ejecución Integration completa
+## BrowserStack + Local
 
 ```bash
 rm -rf allure-results allure-report
-
-behave -t @integration \
--f allure_behave.formatter:AllureFormatter \
--o allure-results
-
-allure serve allure-results
-```
-
----
-
-# 🧪 Ejecución de todas las pruebas
-
-```bash
-rm -rf allure-results allure-report
-
-behave \
--f allure_behave.formatter:AllureFormatter \
--o allure-results
-
+behave -t @smoke --no-capture
 allure serve allure-results
 ```
 
@@ -1590,49 +1054,49 @@ allure serve allure-results
 
 # 🛠️ Comandos útiles
 
-## Ver versión de Python
+Ver Python:
 
 ```bash
 python --version
 ```
 
-## Ver versión de pip
+Ver pip:
 
 ```bash
 pip --version
 ```
 
-## Ver dependencias instaladas
+Ver dependencias:
 
 ```bash
 pip list
 ```
 
-## Actualizar requirements.txt
+Actualizar `requirements.txt`:
 
 ```bash
 pip freeze > requirements.txt
 ```
 
-## Ver versión de Appium
+Ver Appium:
 
 ```bash
 appium --version
 ```
 
-## Ver dispositivos Android
+Ver dispositivos Android:
 
 ```bash
 adb devices
 ```
 
-## Ver versión de Allure
+Ver Allure:
 
 ```bash
 allure --version
 ```
 
-## Ver versión de Git
+Ver Git:
 
 ```bash
 git --version
@@ -1640,29 +1104,12 @@ git --version
 
 ---
 
-# 🗂️ Comandos Git
-
-## Ver estado
+# 🗂️ Git
 
 ```bash
 git status
-```
-
-## Agregar cambios
-
-```bash
 git add .
-```
-
-## Crear commit
-
-```bash
 git commit -m "Update automation framework"
-```
-
-## Subir cambios
-
-```bash
 git push
 ```
 
@@ -1670,205 +1117,85 @@ git push
 
 # 🔐 Seguridad
 
-Nunca subir el archivo:
+Nunca subir:
 
 ```text
 .env
 ```
 
-El archivo `.env` puede contener información sensible como:
+El archivo `.env` puede contener:
 
 - LambdaTest Access Key
-- LambdaTest Username
-- Database Username
-- Database Password
+- BrowserStack Access Key
+- Usuarios
+- Passwords
 - API Keys
 - Tokens
-- Credenciales de ambientes
+- Credenciales de Base de Datos
 
-El repositorio debe contener:
+El repositorio debe contener únicamente:
 
 ```text
 .env.example
 ```
 
-pero no:
-
-```text
-.env
-```
+Nunca publiques las credenciales reales en README, código, screenshots o commits.
 
 ---
 
-# 📝 .env.example
-
-El archivo `.env.example` sirve como plantilla para configurar el proyecto.
-
-Ejemplo:
-
-```env
-# =========================================================
-# EXECUTION
-# =========================================================
-
-EXECUTION_PLATFORM=local
-
-PLATFORM_NAME=Android
-
-
-# =========================================================
-# LOCAL APPIUM
-# =========================================================
-
-APPIUM_SERVER=http://127.0.0.1:4723
-
-DEVICE_NAME=Android
-
-APP_PACKAGE=
-
-APP_ACTIVITY=
-
-
-# =========================================================
-# LAMBDATEST
-# =========================================================
-
-LT_USERNAME=
-
-LT_ACCESS_KEY=
-
-LT_APP=
-
-LT_DEVICE_INDEX=0
-
-
-# =========================================================
-# API
-# =========================================================
-
-POKEMON_API_URL=https://pokeapi.co/api/v2
-
-TEST_API_URL=https://jsonplaceholder.typicode.com
-
-API_TIMEOUT=30
-
-
-# =========================================================
-# DATABASE
-# =========================================================
-
-DB_USER=
-
-DB_PASSWORD=
-
-DB_HOST=
-
-DB_PORT=1521
-
-DB_SERVICE=
-```
-
-No debe contener:
-
-- Passwords reales
-- Access Keys
-- Tokens
-- API Keys
-- Credenciales de Base de Datos
-
----
-
-# 📸 Evidencia Allure
-
-El framework genera evidencia automáticamente.
-
-## Mobile
+# 📁 Estructura del proyecto
 
 ```text
-Screenshot
-Device
-Platform
-Version
-Execution
-```
-
-## API
-
-```text
-API Method
-API Endpoint
-API Parameters
-API Headers
-API Body
-API Status Code
-API Response
-```
-
-## Database
-
-```text
-SQL Query
-SQL Parameters
-SQL Result
-```
-
-## Assertions
-
-```text
-Assertion
-Expected
-Actual
-```
-
----
-
-# 📸 Screenshots
-
-Los screenshots Mobile se capturan automáticamente durante los Steps y se adjuntan a Allure.
-
-Ejemplo:
-
-```text
-Screenshot - que el usuario abre la aplicación
-
-Screenshot - ingresa el usuario
-
-Screenshot - ingresa la contraseña
-
-Screenshot - presiona el botón LOGIN
-
-Screenshot - debería mostrar un mensaje de error
-```
-
-Los Steps de API y Database no generan screenshots de Appium.
-
----
-
-# 🔎 Assertions
-
-Las validaciones se centralizan mediante:
-
-```text
-utils/assertions.py
-```
-
-Ejemplo:
-
-```python
-verify(
-    context,
-    actual=actual,
-    expected=expected,
-    description="API Status Code"
-)
-```
-
-Allure registra:
-
-```text
-Assertion
-Expected
-Actual
+proyecto_python/
+│
+├── api/
+│   ├── api_client.py
+│   ├── base_api.py
+│   ├── endpoints.py
+│   └── ...
+│
+├── config/
+│   ├── api_config.py
+│   ├── config.py
+│   └── devices.py
+│
+├── database/
+│   ├── connection.py
+│   ├── queries.py
+│   └── repositories/
+│       ├── user_repository.py
+│       └── account_repository.py
+│
+├── drivers/
+│   └── driver_factory.py
+│
+├── features/
+│   ├── environment.py
+│   ├── steps/
+│   │   ├── api_steps.py
+│   │   ├── database_steps.py
+│   │   └── login_steps.py
+│   ├── api.feature
+│   ├── database.feature
+│   ├── integration.feature
+│   └── login.feature
+│
+├── pages/
+│   ├── base_page.py
+│   └── login_page.py
+│
+├── utils/
+│   ├── assertions.py
+│   └── browserstack_local.py
+│
+├── .env
+├── .env.example
+├── .gitignore
+├── README.md
+├── requirements.txt
+├── run_devices.py
+├── run_test.sh
+└── test_appium.py
 ```
 
 ---
@@ -1886,9 +1213,31 @@ Page Object
    ↓
 Driver Factory
    ↓
-Appium
+Local / LambdaTest / BrowserStack
    ↓
 Android / iOS
+```
+
+---
+
+# 🔄 Flujo BrowserStack Local
+
+```text
+Behave
+   ↓
+before_all()
+   ↓
+BrowserStackLocalManager
+   ↓
+BrowserStack Local
+   ↓
+BrowserStack Device
+   ↓
+VPN / Red corporativa
+   ↓
+Backend interno
+   ↓
+after_all()
 ```
 
 ---
@@ -1931,73 +1280,39 @@ Oracle
 
 ---
 
-# 🔗 Flujo de integración
-
-```text
-                ┌─────────────┐
-                │   Behave    │
-                └──────┬──────┘
-                       │
-                       ▼
-                ┌─────────────┐
-                │    Mobile   │
-                └──────┬──────┘
-                       │
-                       ▼
-                ┌─────────────┐
-                │     API     │
-                └──────┬──────┘
-                       │
-                       ▼
-                ┌─────────────┐
-                │  Database   │
-                └──────┬──────┘
-                       │
-                       ▼
-                ┌─────────────┐
-                │   Allure    │
-                └─────────────┘
-```
-
----
-
 # 🧩 Principios del Framework
 
 ## Separación de responsabilidades
 
-Cada capa tiene una responsabilidad específica:
-
 ```text
 Pages
-    ↓
+   ↓
 Mobile UI
 
 API Classes
-    ↓
+   ↓
 Business API Operations
 
 ApiClient
-    ↓
+   ↓
 HTTP Communication
 
 Repositories
-    ↓
+   ↓
 Database Operations
 
 Driver Factory
-    ↓
+   ↓
 Mobile Execution
 
 Environment
-    ↓
+   ↓
 Framework Lifecycle
 
 Allure
-    ↓
+   ↓
 Evidence / Reporting
 ```
-
----
 
 ## Reutilización
 
@@ -2008,11 +1323,8 @@ BasePage
 BaseApi
 ApiClient
 DatabaseConnection
+Driver Factory
 ```
-
-Esto evita duplicación de código.
-
----
 
 ## Configuración externa
 
@@ -2022,15 +1334,13 @@ La configuración dependiente del ambiente se mantiene en:
 .env
 ```
 
-Esto permite cambiar entre ambientes sin modificar los Steps.
+Esto permite cambiar entre Local, LambdaTest y BrowserStack sin modificar los escenarios.
 
 ---
 
 # 🌎 Ambientes
 
-El framework puede configurarse para diferentes ambientes mediante variables de entorno.
-
-Ejemplo:
+El framework puede configurarse mediante variables de entorno para diferentes ambientes:
 
 ```text
 DEV
@@ -2044,8 +1354,6 @@ Las URLs, credenciales y configuraciones dependientes del ambiente se mantienen 
 
 # 📋 Checklist de instalación
 
-Después de clonar el proyecto:
-
 ```text
 [ ] Instalar Python
 [ ] Instalar Git
@@ -2057,8 +1365,10 @@ Después de clonar el proyecto:
 [ ] Crear entorno virtual
 [ ] Activar entorno virtual
 [ ] Instalar requirements.txt
+[ ] Instalar browserstack-local si se utilizará BrowserStack Local
 [ ] Crear .env desde .env.example
-[ ] Configurar Appium o LambdaTest
+[ ] Configurar Appium, LambdaTest o BrowserStack
+[ ] Configurar BrowserStack Local si aplica
 [ ] Configurar Base de Datos
 [ ] Verificar dispositivo
 [ ] Ejecutar prueba Login
@@ -2071,50 +1381,44 @@ Después de clonar el proyecto:
 
 # ⚡ Quick Start
 
-Después de tener todas las dependencias instaladas:
-
 ```bash
 python -m venv venv
-```
-
-```bash
 source venv/Scripts/activate
-```
-
-```bash
 pip install -r requirements.txt
-```
-
-Crear `.env`:
-
-```bash
 cp .env.example .env
 ```
 
-Configurar las variables necesarias.
-
-Para ejecución local:
+Configura `EXECUTION_PLATFORM`:
 
 ```env
 EXECUTION_PLATFORM=local
 ```
 
-Para LambdaTest:
-
 ```env
 EXECUTION_PLATFORM=lambdatest
 ```
 
-Ejecutar:
+```env
+EXECUTION_PLATFORM=browserstack
+```
+
+Para BrowserStack Local:
+
+```env
+BS_LOCAL=true
+BS_LOCAL_IDENTIFIER=mobile-automation-local
+```
+
+Ejecutar una suite:
 
 ```bash
 ./run_test.sh
 ```
 
-Para múltiples dispositivos:
+Ejecutar multi-device:
 
 ```bash
-python run_devices.py
+python run_devices.py @smoke
 ```
 
 Abrir reporte:
@@ -2132,8 +1436,12 @@ allure serve allure-results
 [x] Appium
 [x] Android
 [x] iOS
+[x] Ejecución local
 [x] LambdaTest
-[x] Multi-device
+[x] LambdaTest Multi-device
+[x] BrowserStack
+[x] BrowserStack Multi-device
+[x] BrowserStack Local
 [x] Allure
 [x] API Automation
 [x] GET
@@ -2147,12 +1455,14 @@ allure serve allure-results
 [x] Mobile Screenshots
 [x] .env Configuration
 [x] Multiple API Domains
+[x] Tags dinámicos en run_devices.py
+[x] Allure agrupado por proveedor/dispositivo
 
 [ ] PATCH
 [ ] Authentication
 [ ] CI/CD
 [ ] Parallel Execution
-[ ] BrowserStack
+[ ] GitHub Actions
 ```
 
 ---
@@ -2165,6 +1475,7 @@ QA Automation Framework desarrollado en Python para automatización:
 - API
 - Database
 - Integration Testing
+- Cloud Device Testing
 
 ---
 
