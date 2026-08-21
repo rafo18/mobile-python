@@ -128,18 +128,71 @@ def create_local_driver(platform):
 
         options = UiAutomator2Options()
 
-        options.platform_name = "Android"
-        options.device_name = DEVICE_NAME
-        options.automation_name = "UiAutomator2"
+        options.load_capabilities({
 
-        options.app_package = APP_PACKAGE
-        options.app_activity = APP_ACTIVITY
+            # -------------------------------------------------
+            # ANDROID
+            # -------------------------------------------------
 
-        options.app_wait_activity = "*"
+            "platformName":
+                "Android",
 
-        options.new_command_timeout = 120
+            "appium:deviceName":
+                DEVICE_NAME,
 
-        options.no_reset = False
+            "appium:automationName":
+                "UiAutomator2",
+
+            # -------------------------------------------------
+            # APP
+            # -------------------------------------------------
+
+            "appium:appPackage":
+                APP_PACKAGE,
+
+            "appium:appActivity":
+                APP_ACTIVITY,
+
+            "appium:appWaitActivity":
+                "*",
+
+            # -------------------------------------------------
+            # PERMISOS
+            # -------------------------------------------------
+
+            # False = los permisos aparecerán
+            # y los manejaremos desde los steps.
+            "appium:autoGrantPermissions":
+                True,
+
+            # -------------------------------------------------
+            # RESET
+            # -------------------------------------------------
+
+            "appium:noReset":
+                False,
+
+            # -------------------------------------------------
+            # TIMEOUT
+            # -------------------------------------------------
+
+            "appium:newCommandTimeout":
+                120,
+
+            # -------------------------------------------------
+            # APP
+            # -------------------------------------------------
+
+            "appium:autoLaunch":
+                True,
+
+            # -------------------------------------------------
+            # DEBUG
+            # -------------------------------------------------
+
+            "appium:printPageSourceOnFindFailure":
+                True
+        })
 
     # =========================================================
     # IOS
@@ -149,13 +202,23 @@ def create_local_driver(platform):
 
         options = XCUITestOptions()
 
-        options.platform_name = "iOS"
-        options.device_name = DEVICE_NAME
-        options.automation_name = "XCUITest"
+        options.load_capabilities({
 
-        options.new_command_timeout = 120
+            "platformName":
+                "iOS",
 
-        options.no_reset = False
+            "appium:deviceName":
+                DEVICE_NAME,
+
+            "appium:automationName":
+                "XCUITest",
+
+            "appium:noReset":
+                False,
+
+            "appium:newCommandTimeout":
+                120
+        })
 
     else:
 
@@ -258,8 +321,16 @@ def create_lambdatest_driver(platform):
 
         options.load_capabilities({
 
+            # -------------------------------------------------
+            # PLATFORM
+            # -------------------------------------------------
+
             "platformName":
                 "Android",
+
+            # -------------------------------------------------
+            # DEVICE
+            # -------------------------------------------------
 
             "appium:deviceName":
                 device_name,
@@ -270,26 +341,61 @@ def create_lambdatest_driver(platform):
             "appium:automationName":
                 "UiAutomator2",
 
+            # -------------------------------------------------
+            # APP
+            # -------------------------------------------------
+
             "appium:app":
                 LT_APP,
+
+            # -------------------------------------------------
+            # PERMISOS
+            # -------------------------------------------------
+
+            "appium:autoGrantPermissions":
+                True,
+
+            # -------------------------------------------------
+            # RESET
+            # -------------------------------------------------
 
             "appium:noReset":
                 False,
 
+            # -------------------------------------------------
+            # TIMEOUT
+            # -------------------------------------------------
+
             "appium:newCommandTimeout":
                 120,
+
+            # -------------------------------------------------
+            # REAL DEVICE
+            # -------------------------------------------------
 
             "isRealMobile":
                 True,
 
+            # -------------------------------------------------
+            # TUNNEL
+            # -------------------------------------------------
+
             "tunnel":
                 LT_TUNNEL,
+
+            # -------------------------------------------------
+            # BUILD
+            # -------------------------------------------------
 
             "build":
                 "Mobile Automation",
 
             "name":
                 f"Android - {device_name}",
+
+            # -------------------------------------------------
+            # EVIDENCE
+            # -------------------------------------------------
 
             "video":
                 True,
@@ -411,7 +517,7 @@ def create_browserstack_driver(platform):
         )
 
     # =========================================================
-    # LOG BROWSERSTACK LOCAL
+    # BROWSERSTACK LOCAL
     # =========================================================
 
     print("\n=================================")
@@ -532,11 +638,15 @@ def create_browserstack_driver(platform):
         options.load_capabilities({
 
             # -------------------------------------------------
-            # APPIUM
+            # PLATFORM
             # -------------------------------------------------
 
             "platformName":
                 "Android",
+
+            # -------------------------------------------------
+            # DEVICE
+            # -------------------------------------------------
 
             "appium:deviceName":
                 device_name,
@@ -547,17 +657,36 @@ def create_browserstack_driver(platform):
             "appium:automationName":
                 "UiAutomator2",
 
+            # -------------------------------------------------
+            # APP
+            # -------------------------------------------------
+
             "appium:app":
                 BS_APP,
 
+            # -------------------------------------------------
+            # PERMISOS
+            # -------------------------------------------------
+
+            "appium:autoGrantPermissions":
+                True,
+
+            # -------------------------------------------------
+            # RESET
+            # -------------------------------------------------
+
             "appium:noReset":
                 False,
+
+            # -------------------------------------------------
+            # TIMEOUT
+            # -------------------------------------------------
 
             "appium:newCommandTimeout":
                 120,
 
             # -------------------------------------------------
-            # BROWSERSTACK OPTIONS
+            # BROWSERSTACK
             # -------------------------------------------------
 
             "bstack:options": {
@@ -567,6 +696,10 @@ def create_browserstack_driver(platform):
 
                 "accessKey":
                     BS_ACCESS_KEY,
+
+                # -------------------------------------------------
+                # PROJECT
+                # -------------------------------------------------
 
                 "projectName":
                     "Mobile Automation",
@@ -578,7 +711,7 @@ def create_browserstack_driver(platform):
                     f"Android - {device_name}",
 
                 # -------------------------------------------------
-                # LOCAL TESTING
+                # LOCAL
                 # -------------------------------------------------
 
                 "local":
@@ -615,10 +748,6 @@ def create_browserstack_driver(platform):
 
         options.load_capabilities({
 
-            # -------------------------------------------------
-            # APPIUM
-            # -------------------------------------------------
-
             "platformName":
                 "iOS",
 
@@ -640,10 +769,6 @@ def create_browserstack_driver(platform):
             "appium:newCommandTimeout":
                 120,
 
-            # -------------------------------------------------
-            # BROWSERSTACK OPTIONS
-            # -------------------------------------------------
-
             "bstack:options": {
 
                 "userName":
@@ -661,19 +786,11 @@ def create_browserstack_driver(platform):
                 "sessionName":
                     f"iOS - {device_name}",
 
-                # -------------------------------------------------
-                # LOCAL TESTING
-                # -------------------------------------------------
-
                 "local":
                     BS_LOCAL,
 
                 "localIdentifier":
                     BS_LOCAL_IDENTIFIER,
-
-                # -------------------------------------------------
-                # LOGS
-                # -------------------------------------------------
 
                 "debug":
                     True,
